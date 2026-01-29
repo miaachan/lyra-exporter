@@ -1,5 +1,9 @@
 // data/validationUtils.js
+// 验证工具类 - 避免循环依赖
 
+/**
+ * Validation 工具类 - 验证跨窗口通信来源
+ */
 export const ValidationUtils = {
   isAllowedOrigin(origin) {
     const allowedOrigins = [

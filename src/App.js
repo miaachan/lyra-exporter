@@ -1,4 +1,6 @@
-﻿import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+﻿// App.js - 大幅简化版本
+/* global chrome */
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import './styles/index.css';
 
 // 组件导入
@@ -33,6 +35,9 @@ import { getGlobalSearchManager } from './utils/globalSearchManager';
 import { getRenameManager } from './utils/renameManager';
 import { useI18n } from './index.js';
 
+// AI Chat 浮窗组件
+import { FloatPanel, FloatPanelTrigger, initLyraAIChat } from './ai-chat';
+import './ai-chat/styles/index.css';
 
 // ==================== 通用工具类 ====================
 
@@ -680,6 +685,9 @@ const useFileManager = () => {
 };
 
 function App() {
+  // ==================== Hooks和状态管理 ====================
+  // 检测是否在 Chrome 扩展环境中
+  const isExtension = typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id;
 
   // i18n
   const { t, currentLanguage } = useI18n();
@@ -966,6 +974,16 @@ function App() {
 
   const isFullExportConversationMode = viewMode === 'conversations' && processedData?.format === 'claude_full_export';
 
+  // ==================== AI Chat 集成 ====================
+
+  // 初始化 AI Chat
+  useEffect(() => {
+    initLyraAIChat();
+  }, []);
+
+  // 注意：上下文初始化和追踪逻辑已统一移至 ConversationTimeline.js
+  // ConversationTimeline 在文件切换时调用 initContext，在分支选择后追踪消息
+  // 这样可以避免 setTimeout 导致的时序问题（initContext 在追踪后执行清空上下文）
 
   // ==================== 事件处理函数 ====================
 
@@ -975,7 +993,13 @@ function App() {
 
   const handleFileLoad = (e) => {
     const fileList = Array.from(e.target.files);
-    fileActions.loadFiles(fileList);
+    // 检测是否包含JSONL文件，如果是则使用合并加载（支持分支检测）
+    const hasJSONL = fileList.some(f => f.name.endsWith('.jsonl'));
+    if (hasJSONL) {
+      fileActions.loadMergedJSONLFiles(fileList);
+    } else {
+      fileActions.loadFiles(fileList);
+    }
   };
 
   // 文件夹加载处理
@@ -1406,6 +1430,50 @@ function App() {
     return cleanup;
   }, [postMessageHandler]);
 
+  // Chrome 扩展模式：从 chrome.storage 读取待处理数据
+  useEffect(() => {
+    if (!isExtension) return;
+
+    console.log('[Lyra App] Running in Chrome extension mode');
+
+    // 检查是否有待处理的数据
+    chrome.storage.local.get(['lyra_pending_data'], (result) => {
+      if (result.lyra_pending_data) {
+        const { content, filename } = result.lyra_pending_data;
+        console.log('[Lyra App] Found pending data from extension:', filename);
+
+        // 创建文件对象并加载
+        try {
+          const jsonData = typeof content === 'string' ? content : JSON.stringify(content);
+          const blob = new Blob([jsonData], { type: 'application/json' });
+          const file = new File([blob], filename, {
+            type: 'application/json',
+            lastModified: Date.now()
+          });
+
+          // 加载文件
+          fileActions.loadFiles([file]);
+
+          // 清除已处理的数据
+          chrome.storage.local.remove(['lyra_pending_data']);
+          console.log('[Lyra App] Data loaded successfully, waiting for file processing...');
+
+        } catch (error) {
+          console.error('[Lyra App] Error loading data from extension:', error);
+          setError('Failed to load data from extension: ' + error.message);
+        }
+      }
+    });
+  }, [isExtension, fileActions, setError]);
+
+  // Chrome 扩展模式：监听文件加载完成，自动切换到时间线视图
+  useEffect(() => {
+    if (isExtension && files.length > 0 && viewMode !== 'timeline') {
+      console.log('[Lyra App] Files loaded in extension mode, switching to timeline view');
+      setViewMode('timeline');
+      fileActions.switchFile(0);
+    }
+  }, [isExtension, files, viewMode, fileActions]);
 
   // ==================== 渲染 ====================
 
@@ -1442,7 +1510,7 @@ function App() {
                 <span className="logo-text">Lyra Exporter</span>
               </div>
 
-              {viewMode === 'timeline' && (
+              {viewMode === 'timeline' && !isExtension && (
                 <button
                   className="btn-secondary small"
                   onClick={handleBackToConversations}
@@ -1516,33 +1584,35 @@ function App() {
           {/* 主容器 */}
           <div className="main-container">
             <div className="content-area" ref={contentAreaRef}>
-              {/* 统计面板 */}
-              <div className="stats-panel">
-                <div className="stats-grid">
-                  <div className="stat-card">
-                    <div className="stat-value">{stats.totalMessages}</div>
-                    <div className="stat-label">{t('app.stats.totalMessages')}</div>
-                  </div>
-                  <div className="stat-card">
-                    <div className="stat-value">{stats.conversationCount}</div>
-                    <div className="stat-label">{t('app.stats.conversationCount')}</div>
-                  </div>
-                  <div className="stat-card">
-                    <div className="stat-value">{stats.fileCount}</div>
-                    <div className="stat-label">{t('app.stats.fileCount')}</div>
-                  </div>
-                  <div className="stat-card">
-                    <div className="stat-value">{stats.markedCount}</div>
-                    <div className="stat-label">{t('app.stats.markedCount')}</div>
-                  </div>
-                  {isFullExportConversationMode && shouldUseStarSystem && (
+              {/* 统计面板 - 在扩展模式下隐藏 */}
+              {!isExtension && (
+                <div className="stats-panel">
+                  <div className="stats-grid">
                     <div className="stat-card">
-                      <div className="stat-value">{stats.starredCount}</div>
-                      <div className="stat-label">{t('app.stats.starredCount')}</div>
+                      <div className="stat-value">{stats.totalMessages}</div>
+                      <div className="stat-label">{t('app.stats.totalMessages')}</div>
                     </div>
-                  )}
+                    <div className="stat-card">
+                      <div className="stat-value">{stats.conversationCount}</div>
+                      <div className="stat-label">{t('app.stats.conversationCount')}</div>
+                    </div>
+                    <div className="stat-card">
+                      <div className="stat-value">{stats.fileCount}</div>
+                      <div className="stat-label">{t('app.stats.fileCount')}</div>
+                    </div>
+                    <div className="stat-card">
+                      <div className="stat-value">{stats.markedCount}</div>
+                      <div className="stat-label">{t('app.stats.markedCount')}</div>
+                    </div>
+                    {isFullExportConversationMode && shouldUseStarSystem && (
+                      <div className="stat-card">
+                        <div className="stat-value">{stats.starredCount}</div>
+                        <div className="stat-label">{t('app.stats.starredCount')}</div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* 筛选器 */}
               {isFullExportConversationMode && (
@@ -1613,7 +1683,8 @@ function App() {
           {/* 悬浮导出按钮 - 移动端查看消息详情时隐藏 */}
           <FloatingActionButton
             onClick={() => {
-              setActionPanelSection('exportMarkdown');
+              const lastExportFormat = localStorage.getItem('lyra_last_export_format') || 'exportMarkdown';
+              setActionPanelSection(lastExportFormat);
               setShowActionPanel(true);
             }}
             title={t('app.export.button')}
@@ -1688,6 +1759,14 @@ function App() {
               isOpen={screenshotPreview.isOpen}
               onClose={closeScreenshotPreview}
             />
+          )}
+
+          {/* AI Chat 浮窗 - 仅在非 Chrome 扩展模式下显示 */}
+          {!isExtension && (
+            <>
+              <FloatPanel />
+              <FloatPanelTrigger position="bottom-left" />
+            </>
           )}
         </>
       )}

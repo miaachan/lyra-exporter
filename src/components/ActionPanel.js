@@ -1,4 +1,5 @@
 // components/ActionPanel.js
+// Ubuntu风格操作面板 - 整合全局搜索、语义搜索、导出功能
 
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { getGlobalSearchManager } from '../utils/globalSearchManager';
@@ -19,6 +20,9 @@ const NAV_ITEMS = [
   { id: 'exportPdf', icon: '', labelKey: 'actionPanel.nav.exportPdf' }
 ];
 
+/**
+ * Ubuntu风格操作面板
+ */
 const ActionPanel = ({
   isOpen,
   onClose,
@@ -126,7 +130,13 @@ const ActionPanel = ({
               <button
                 key={item.id}
                 className={`nav-item ${activeSection === item.id ? 'active' : ''}`}
-                onClick={() => setActiveSection(item.id)}
+                onClick={() => {
+                  setActiveSection(item.id);
+                  // 记住上次使用的导出格式
+                  if (item.id.startsWith('export')) {
+                    localStorage.setItem('lyra_last_export_format', item.id);
+                  }
+                }}
               >
                 <span className="nav-icon">{item.icon}</span>
                 <span className="nav-label">{t(item.labelKey)}</span>

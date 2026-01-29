@@ -429,11 +429,13 @@
       "title": "Appearance",
       "theme": {
         "label": "Theme",
-        "description": "Choose dark or light theme",
+        "description": "Choose dark, light or e-ink theme",
         "dark": "Dark Theme",
         "light": "Light Theme",
+        "eink": "E-Ink Theme",
         "toggleToDark": "Switch to Dark Theme",
-        "toggleToLight": "Switch to Light Theme"
+        "toggleToLight": "Switch to Light Theme",
+        "toggleToEink": "Switch to E-Ink Theme"
       },
       "language": {
         "label": "Language",

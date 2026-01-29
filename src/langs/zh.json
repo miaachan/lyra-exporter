@@ -285,11 +285,13 @@
       "title": "外观",
       "theme": {
         "label": "主题",
-        "description": "选择深色或浅色主题",
+        "description": "选择深色、浅色或墨水屏主题",
         "dark": "深色主题",
         "light": "浅色主题",
+        "eink": "墨水屏主题",
         "toggleToDark": "切换到深色主题",
-        "toggleToLight": "切换到浅色主题"
+        "toggleToLight": "切换到浅色主题",
+        "toggleToEink": "切换到墨水屏主题"
       },
       "language": {
         "label": "语言",

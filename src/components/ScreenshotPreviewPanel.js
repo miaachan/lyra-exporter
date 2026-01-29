@@ -31,6 +31,8 @@ const ScreenshotPreviewPanel = ({
   // 手势支持
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
+  const [touchStartY, setTouchStartY] = useState(null);
+  const [touchEndY, setTouchEndY] = useState(null);
   const panelRef = useRef(null);
 
   // 浏览器回退支持
@@ -56,21 +58,25 @@ const ScreenshotPreviewPanel = ({
 
   const onTouchStart = (e) => {
     setTouchEnd(null);
+    setTouchEndY(null);
     setTouchStart(e.targetTouches[0].clientX);
+    setTouchStartY(e.targetTouches[0].clientY);
   };
 
   const onTouchMove = (e) => {
     setTouchEnd(e.targetTouches[0].clientX);
+    setTouchEndY(e.targetTouches[0].clientY);
   };
 
   const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
+    if (!touchStart || !touchEnd || !touchStartY || !touchEndY) return;
 
-    const distance = touchStart - touchEnd;
-    const isRightSwipe = distance < -minSwipeDistance;
+    const distanceX = touchStart - touchEnd;
+    const distanceY = Math.abs(touchEndY - touchStartY);
+    const isRightSwipe = distanceX < -minSwipeDistance;
 
-    // 右滑关闭面板
-    if (isRightSwipe) {
+    // 只有在水平滑动距离大于垂直滑动距离时才处理（避免垂直滚动触发）
+    if (Math.abs(distanceX) > distanceY && isRightSwipe) {
       handleBackClick();
     }
   };

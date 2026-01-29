@@ -5,7 +5,7 @@
 import { extractClaudeData, detectClaudeBranches } from './claudeParser.js';
 import { extractChatGPTData, detectChatGPTBranches } from './chatgptParser.js';
 import { extractGrokData, detectGrokBranches } from './grokParser.js';
-import { extractGeminiData, extractJSONLData, extractMergedJSONLData, mergeJSONLFiles, detectOtherBranches } from './otherParsers.js';
+import { extractGeminiData, extractMergedJSONLData, mergeJSONLFiles, detectOtherBranches } from './otherParsers.js';
 
 // 导入工具函数
 import {
@@ -83,7 +83,8 @@ export const extractChatData = (jsonData, fileName = '') => {
       case 'gemini_notebooklm':
         return extractGeminiData(jsonData, fileName);
       case 'jsonl_chat':
-        return extractJSONLData(jsonData, fileName);
+        // 使用统一的合并器处理，即使是单文件也能正确处理 swipes 分支
+        return extractMergedJSONLData([{ data: jsonData, fileName }]);
       case 'chatgpt':
         return extractChatGPTData(jsonData, fileName);
       default:

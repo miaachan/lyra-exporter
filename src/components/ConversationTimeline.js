@@ -10,6 +10,8 @@ import { copyMessage } from '../utils/copyManager';
 import { PlatformUtils, DateTimeUtils, TextUtils } from '../utils/fileParser';
 import { useI18n } from '../index.js';
 import { getRenameManager } from '../utils/renameManager';
+// AI Chat 上下文桥接
+import { useContextBridge } from '../ai-chat';
 
 // ==================== 重命名对话框组件 ====================
 const RenameDialog = ({
@@ -411,6 +413,13 @@ const ConversationTimeline = ({
 }) => {
   const { t } = useI18n();
 
+  // AI Chat 上下文桥接
+  const {
+    initContext,
+    addMessageToContext,
+    addMessagesToContext,
+    recordBranchSwitch: recordBranchSwitchToContext
+  } = useContextBridge();
 
   const [selectedMessageIndex, setSelectedMessageIndex] = useState(null);
   const [activeTab, setActiveTab] = useState('content');
@@ -636,10 +645,48 @@ const ConversationTimeline = ({
     setBranchFilters(prev => {
       const newFilters = new Map(prev);
 
+      // 获取之前的分支索引，用于记录分支切换
+      const previousBranchIndex = prev.get(branchPointUuid) ?? 0;
+
       // 即使是相同的分支索引,也要重新设置以触发更新
       newFilters.set(branchPointUuid, newBranchIndex);
 
       console.log(`[分支切换] 更新分支过滤器:`, Array.from(newFilters.entries()));
+
+      // 生成复合分支 ID (保持与 useEffect 和 handleMessageSelect 一致)
+      const generateBranchId = (map) => {
+        if (!map || map.size === 0) return 'main';
+        return `branch_${Array.from(map.entries()).map(([k, v]) => `${k.slice(-4)}_${v}`).join('_')}`;
+      };
+
+      const fromBranch = generateBranchId(prev);
+      const toBranch = generateBranchId(newFilters);
+
+      // 记录分支切换到 AI Chat 上下文（useContextBridge会自动判断是否需要清理旧下文）
+      // 使用复合 ID 以确保 clearBranch 能正确找到之前的消息
+      if (fromBranch !== toBranch) {
+        recordBranchSwitchToContext(fromBranch, toBranch);
+
+        // 立即将新分支的消息添加到上下文
+        try {
+          const branchData = branchAnalysis.branchPoints.get(branchPointUuid);
+          if (branchData && branchData.branches[newBranchIndex]) {
+            const newBranchMessages = branchData.branches[newBranchIndex].messages;
+            const contextMessages = newBranchMessages.map(msg => ({
+              index: msg.index,
+              uuid: msg.uuid,
+              sender: msg.sender,
+              content: msg.text || msg.content || msg.display_text || '',
+              branch: toBranch // 使用新的复合分支 ID
+            }));
+
+            console.log(`[分支切换] 添加新分支消息到上下文: ${contextMessages.length} 条, BranchID: ${toBranch}`);
+            addMessagesToContext(contextMessages, toBranch);
+          }
+        } catch (e) {
+          console.error('[分支切换] 添加上下文失败:', e);
+        }
+      }
 
       // 通知父组件分支状态变化
       if (onBranchStateChange) {
@@ -654,7 +701,7 @@ const ConversationTimeline = ({
 
     // 强制触发消息列表更新
     setForceUpdateCounter(prev => prev + 1);
-  }, [onBranchStateChange]);
+  }, [onBranchStateChange, recordBranchSwitchToContext]);
 
   const handleShowAllBranches = useCallback(() => {
     const newShowAllBranches = !showAllBranches;
@@ -691,6 +738,17 @@ const ConversationTimeline = ({
 
   // ==================== 状态和副作用 ====================
 
+  // 文件切换时重置上下文 - 在分支重置和消息追踪之前执行
+  useEffect(() => {
+    if (files && files.length > 0 && currentFileIndex !== null && currentFileIndex >= 0 && files[currentFileIndex]) {
+      const file = files[currentFileIndex];
+      console.log(`[ConversationTimeline] 文件切换，初始化上下文 - file: ${file.name}`);
+      initContext({
+        uuid: `file_${currentFileIndex}_${file.name}`,
+        name: file.name
+      });
+    }
+  }, [currentFileIndex, files, initContext]);
 
   // 重置分支状态 - 当对话切换时
   useEffect(() => {
@@ -1028,6 +1086,44 @@ const ConversationTimeline = ({
     }
   }, [displayMessages, onDisplayMessagesChange]);
 
+  // 自动追踪当前分支的所有消息到 AI 上下文
+  useEffect(() => {
+    if (!displayMessages || displayMessages.length === 0) return;
+
+    // 只在明确选择了分支时才自动追踪，避免追踪全部消息
+    // 1. 不是显示所有分支模式
+    if (showAllBranches) {
+      console.log('[ContextBridge] Skipping auto-track: showing all branches');
+      return;
+    }
+
+    // 2. 必须有分支点（存在分支结构）
+    if (branchAnalysis.branchPoints.size === 0) {
+      console.log('[ContextBridge] Skipping auto-track: no branch points detected');
+      return;
+    }
+
+    // 3. 必须已经选择了分支（branchFilters 不为空）
+    if (branchFilters.size === 0) {
+      console.log('[ContextBridge] Skipping auto-track: no branch filter set');
+      return;
+    }
+
+    // 获取当前分支 ID
+    const currentBranchId = `branch_${Array.from(branchFilters.entries()).map(([k, v]) => `${k.slice(-4)}_${v}`).join('_')}`;
+
+    console.log(`[ContextBridge] Auto-tracking ${displayMessages.length} messages from branch: ${currentBranchId}`);
+
+    // 批量添加所有消息到上下文
+    displayMessages.forEach(msg => {
+      addMessageToContext({
+        index: msg.index,
+        uuid: msg.uuid,
+        sender: msg.sender,
+        text: msg.display_text || msg.text || ''
+      }, currentBranchId);
+    });
+  }, [displayMessages, branchFilters, branchAnalysis, showAllBranches, addMessageToContext]);
 
   // 初始化自定义名称
   useEffect(() => {
@@ -1132,6 +1228,21 @@ const ConversationTimeline = ({
     setSelectedMessageIndex(messageIndex);
     setActiveTab('content'); // 重置到内容标签
 
+    // 将选中的消息添加到 AI Chat 上下文
+    const selectedMessage = messages.find(m => m.index === messageIndex);
+    if (selectedMessage) {
+      // 获取当前分支 ID（从 branchFilters 或默认 main）
+      const currentBranchId = branchFilters.size > 0
+        ? `branch_${Array.from(branchFilters.entries()).map(([k, v]) => `${k.slice(-4)}_${v}`).join('_')}`
+        : 'main';
+      addMessageToContext({
+        index: messageIndex,
+        uuid: selectedMessage.uuid,
+        sender: selectedMessage.sender,
+        text: selectedMessage.display_text || selectedMessage.text || ''
+      }, currentBranchId);
+    }
+
     if (!isDesktop) {
       // 移动端:显示移动端详情 modal
       setShowMobileDetail(true);
@@ -1183,7 +1294,7 @@ const ConversationTimeline = ({
     }
   }, [selectedMessageIndex, showMobileDetail]);
 
-  const handleNavigateMessage = (direction) => {
+  const handleNavigateMessage = (direction, scrollToPosition = null) => {
     const currentIndex = displayMessages.findIndex(m => m.index === selectedMessageIndex);
     if (currentIndex === -1) return;
 
@@ -1191,8 +1302,133 @@ const ConversationTimeline = ({
     if (newIndex >= 0 && newIndex < displayMessages.length) {
       setSelectedMessageIndex(displayMessages[newIndex].index);
       setActiveTab('content');
+
+      // 切换消息后设置滚动位置
+      if (mobileDetailBodyRef.current) {
+        setTimeout(() => {
+          const container = mobileDetailBodyRef.current;
+          if (!container) return;
+
+          if (scrollToPosition === 'bottom') {
+            container.scrollTop = container.scrollHeight - container.clientHeight;
+          } else {
+            container.scrollTop = 0;
+          }
+        }, 50);
+      }
     }
   };
+
+  // 翻页函数（用于点击和滑动）
+  const handlePageTurn = (direction) => {
+    const container = mobileDetailBodyRef.current;
+    if (!container) return;
+
+    const viewportHeight = container.clientHeight;
+    const scrollHeight = container.scrollHeight;
+    const currentScroll = container.scrollTop;
+    const pageSize = viewportHeight * 0.8; // 80% 视口高度，保留 20% 重叠
+
+    if (direction === 'next') {
+      // 下一页
+      const maxScroll = scrollHeight - viewportHeight;
+      if (currentScroll >= maxScroll - 1) {
+        // 已在底部，切换到下一条消息
+        const currentIndex = displayMessages.findIndex(m => m.index === selectedMessageIndex);
+        if (currentIndex < displayMessages.length - 1) {
+          handleNavigateMessage('next', 'top');
+        }
+      } else {
+        // 翻到下一页
+        container.scrollTop = Math.min(currentScroll + pageSize, maxScroll);
+      }
+    } else {
+      // 上一页
+      if (currentScroll <= 1) {
+        // 已在顶部，切换到上一条消息
+        const currentIndex = displayMessages.findIndex(m => m.index === selectedMessageIndex);
+        if (currentIndex > 0) {
+          handleNavigateMessage('prev', 'bottom');
+        }
+      } else {
+        // 翻到上一页
+        container.scrollTop = Math.max(currentScroll - pageSize, 0);
+      }
+    }
+  };
+
+  // 使用原生事件监听器禁用滚动并处理翻页
+  useEffect(() => {
+    const container = mobileDetailBodyRef.current;
+    if (!container || !showMobileDetail) return;
+
+    let touchStartY = 0;
+    let touchStartX = 0;
+    let touchStartTime = 0;
+
+    const onTouchStart = (e) => {
+      const touch = e.touches[0];
+      touchStartY = touch.clientY;
+      touchStartX = touch.clientX;
+      touchStartTime = Date.now();
+    };
+
+    const onTouchMove = (e) => {
+      // 完全阻止滚动
+      e.preventDefault();
+    };
+
+    const onTouchEnd = (e) => {
+      const touch = e.changedTouches[0];
+      const deltaY = touch.clientY - touchStartY;
+      const deltaX = touch.clientX - touchStartX;
+      const deltaTime = Date.now() - touchStartTime;
+
+      const SWIPE_THRESHOLD = 30;
+      const TAP_THRESHOLD = 10; // 点击判定阈值
+      const TAP_MAX_TIME = 300; // 点击最大时间
+
+      // 判断是否为点击（移动距离小且时间短）
+      const isTap = Math.abs(deltaX) < TAP_THRESHOLD &&
+                    Math.abs(deltaY) < TAP_THRESHOLD &&
+                    deltaTime < TAP_MAX_TIME;
+
+      if (isTap) {
+        // 点击翻页：左半边=上一页，右半边=下一页
+        const screenWidth = window.innerWidth;
+        const tapX = touch.clientX;
+
+        if (tapX < screenWidth / 2) {
+          handlePageTurn('prev');
+        } else {
+          handlePageTurn('next');
+        }
+        return;
+      }
+
+      // 滑动翻页
+      if (Math.abs(deltaY) > SWIPE_THRESHOLD) {
+        if (deltaY < 0) {
+          // 向上滑动 = 下一页
+          handlePageTurn('next');
+        } else {
+          // 向下滑动 = 上一页
+          handlePageTurn('prev');
+        }
+      }
+    };
+
+    // 添加原生事件监听器，passive: false 才能阻止滚动
+    container.addEventListener('touchstart', onTouchStart, { passive: true });
+    container.addEventListener('touchmove', onTouchMove, { passive: false });
+    container.addEventListener('touchend', onTouchEnd, { passive: true });
+
+    return () => {
+      container.removeEventListener('touchstart', onTouchStart);
+      container.removeEventListener('touchmove', onTouchMove);
+      container.removeEventListener('touchend', onTouchEnd);
+    };
+  }, [showMobileDetail, selectedMessageIndex, displayMessages]);
 
   const handleCopyMessage = async (message, messageIndex) => {
     const success = await copyMessage(message, {
@@ -2056,7 +2292,10 @@ const ConversationTimeline = ({
                 </div>
               </div>
 
-              <div className="mobile-detail-body" ref={mobileDetailBodyRef}>
+              <div
+                className="mobile-detail-body"
+                ref={mobileDetailBodyRef}
+              >
                 <MessageDetailPanel
                   data={data}
                   selectedMessageIndex={selectedMessageIndex}

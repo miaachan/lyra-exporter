@@ -1,6 +1,6 @@
 /* =================== App全局主布局样式 =================== */
 
-/* Chrome 扩展侧边栏样式 - 仅在桌面端生效 */
+/* Chrome 扩展侧边栏样式 - 仅在大屏幕上应用 */
 @media (min-width: 1024px) {
   :root {
     /* 强制设置侧边栏宽度 */
@@ -258,8 +258,7 @@
   .main-container {
     height: auto;
     min-height: calc(100vh - 65px);
-    overflow-x: hidden;
-    /* 防止水平溢出导致界面被拉伸 */
+    overflow-x: hidden; /* 防止水平溢出导致界面被拉伸 */
     overflow-y: visible;
   }
 }
@@ -276,8 +275,7 @@
 /* 移动端：内容决定高度 */
 @media (max-width: 1023px) {
   .content-area {
-    overflow-x: hidden;
-    /* 防止水平溢出导致界面被拉伸 */
+    overflow-x: hidden; /* 防止水平溢出导致界面被拉伸 */
     overflow-y: visible;
     height: auto;
   }
@@ -356,26 +354,13 @@
 
 /* 打字动画效果 */
 @keyframes typing {
-  from {
-    width: 0;
-  }
-
-  to {
-    width: 100%;
-  }
+  from { width: 0; }
+  to { width: 100%; }
 }
 
 @keyframes blink {
-
-  0%,
-  50% {
-    opacity: 1;
-  }
-
-  51%,
-  100% {
-    opacity: 0;
-  }
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
 }
 
 .typing-text {
@@ -389,14 +374,13 @@
 
 /* 欢迎页特效动画 */
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
+  from { 
+    opacity: 0; 
+    transform: translateY(10px); 
   }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
   }
 }
 
@@ -676,7 +660,7 @@
   min-width: 0;
 }
 
-.settings-panel-ubuntu .setting-label>span:first-child {
+.settings-panel-ubuntu .setting-label > span:first-child {
   display: block;
   font-size: 14px;
   font-weight: 500;
@@ -797,7 +781,7 @@
   padding: 10px 18px;
   background: #24292f;
   color: #ffffff;
-  border: 1px solid rgba(240, 246, 252, 0.1);
+  border: 1px solid rgba(240,246,252,0.1);
   border-radius: 6px;
   text-decoration: none;
   font-size: 14px;
@@ -808,7 +792,7 @@
 
 .settings-panel-ubuntu .github-link:hover {
   background: #2c333a;
-  border-color: rgba(240, 246, 252, 0.2);
+  border-color: rgba(240,246,252,0.2);
   transform: translateY(-1px);
 }
 
@@ -826,6 +810,32 @@
   color: var(--text-secondary);
   line-height: 1.5;
   margin-top: 8px;
+}
+
+/* 底部按钮栏 */
+.settings-panel-ubuntu .settings-footer {
+  padding: 16px 20px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.settings-panel-ubuntu .settings-footer .btn-primary {
+  padding: 10px 24px;
+  background: var(--accent-color);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.settings-panel-ubuntu .settings-footer .btn-primary:hover {
+  background: var(--accent-color-hover);
 }
 
 /* 移动端适配 */
@@ -1450,18 +1460,8 @@
 }
 
 @keyframes typing {
-
-  0%,
-  60%,
-  100% {
-    opacity: 0.3;
-    transform: scale(0.8);
-  }
-
-  30% {
-    opacity: 1;
-    transform: scale(1);
-  }
+  0%, 60%, 100% { opacity: 0.3; transform: scale(0.8); }
+  30% { opacity: 1; transform: scale(1); }
 }
 
 .semantic-search-section .semantic-input {

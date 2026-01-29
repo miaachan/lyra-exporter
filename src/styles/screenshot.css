@@ -146,6 +146,12 @@
   margin-bottom: 20px;
 }
 
+/* 覆盖 timeline-message 的默认边距，避免双重边距 */
+.preview-container .timeline-message,
+.screenshot-container .timeline-message {
+  margin-bottom: 0;
+}
+
 .split-line {
   margin: 30px 0;
   padding: 16px;

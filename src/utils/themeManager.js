@@ -28,12 +28,22 @@ export const ThemeUtils = {
   },
 
   /**
-   * 切换主题
+   * 切换主题 (dark → light → eink → dark)
    */
   toggleTheme() {
     const currentTheme = this.getCurrentTheme();
-    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    const themeOrder = ['dark', 'light', 'eink'];
+    const currentIndex = themeOrder.indexOf(currentTheme);
+    const nextIndex = (currentIndex + 1) % themeOrder.length;
+    const newTheme = themeOrder[nextIndex];
     this.applyTheme(newTheme);
     return newTheme;
+  },
+
+  /**
+   * 获取所有可用主题
+   */
+  getAvailableThemes() {
+    return ['dark', 'light', 'eink'];
   }
 };
