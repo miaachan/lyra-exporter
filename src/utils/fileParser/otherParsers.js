@@ -1,5 +1,5 @@
 // otherParsers.js
-// Gemini/NotebookLM/JSONL 平台的解析器和分支检测
+// Gemini/NotebookLM/JSONL/Copilot 平台的解析器和分支检测
 
 import {
   MessageBuilder,
@@ -9,6 +9,56 @@ import {
   extractThinkingAndContent,
   PARSER_CONFIG
 } from './helpers.js';
+
+// ==================== Copilot 解析器 ====================
+export const extractCopilotData = (jsonData) => {
+  const title = jsonData.title || "无标题对话";
+  const exportTime = DateTimeUtils.formatDateTime(jsonData.exportTime);
+  const conversationId = jsonData.conversationId || "";
+
+  const metaInfo = {
+    title,
+    created_at: exportTime,
+    updated_at: exportTime,
+    uuid: conversationId,
+    model: "Copilot",
+    platform: 'copilot',
+    has_embedded_images: false,
+    images_processed: 0
+  };
+
+  const chatHistory = [];
+  const responses = jsonData.responses || [];
+
+  responses.forEach((msg, msgIdx) => {
+    const sender = msg.sender || "unknown";
+    const senderLabel = sender === "human" ? "User" : "Copilot";
+
+    const messageData = new MessageBuilder(
+      msgIdx,
+      `copilot_msg_${msgIdx}`,
+      msgIdx > 0 ? `copilot_msg_${msgIdx - 1}` : "",
+      sender,
+      senderLabel,
+      exportTime
+    ).build();
+
+    // 处理消息内容
+    const messageText = msg.message || "";
+    messageData.raw_text = messageText;
+    messageData.display_text = messageText;
+
+    chatHistory.push(messageData);
+  });
+
+  return {
+    meta_info: metaInfo,
+    chat_history: chatHistory,
+    raw_data: jsonData,
+    format: 'copilot',
+    platform: 'copilot'
+  };
+};
 
 // ==================== Gemini/NotebookLM 解析器 ====================
 export const extractGeminiData = (jsonData, fileName) => {

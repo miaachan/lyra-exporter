@@ -26,34 +26,34 @@
  * ```
  */
 
-// 内部 imports - 用于初始化函数和默认导出
-import { chatService as chatServiceInternal } from './services/ChatService.js'
-import { mcpService as mcpServiceInternal, registerBuiltinMCPs as registerBuiltinMCPsInternal } from './services/MCPService.js'
-import { settingsActions as settingsActionsInternal, contextActions as contextActionsInternal, panelActions as panelActionsInternal } from './store/index.js'
-import { FloatPanel as FloatPanelComponent, FloatPanelTrigger as FloatPanelTriggerComponent } from './components/FloatPanel.jsx'
+// ============================================
+// Imports
+// ============================================
+
+import { chatService, mcpService, registerBuiltinMCPs as registerBuiltinMCPsInternal } from './services.js'
+import { contextActions, panelActions } from './store.js'
+import { FloatPanel as FloatPanelComponent, FloatPanelTrigger as FloatPanelTriggerComponent } from './components.jsx'
+import { DEFAULT_AI_CONFIG } from '../config/aiConfig.js'
 
 // ============================================
 // 组件导出
 // ============================================
 
-export { FloatPanel, FloatPanelTrigger } from './components/FloatPanel.jsx'
-export { ChatPanel } from './components/ChatPanel/index.jsx'
-export { ManagePanel } from './components/ManagePanel/index.jsx'
-export { MessageList } from './components/ChatPanel/MessageList.jsx'
-export { ChatInput } from './components/ChatPanel/ChatInput.jsx'
-export { ContextStatus, ContextDetail } from './components/ChatPanel/ContextStatus.jsx'
-export { MCPServerList } from './components/ManagePanel/MCPServerList.jsx'
-export { APISettings } from './components/ManagePanel/APISettings.jsx'
-
-// 通用组件
-export * from './components/Common/index.jsx'
+export {
+  FloatPanel,
+  FloatPanelTrigger,
+  ChatPanel,
+  ChatInput,
+  MessageList,
+  ContextStatus,
+  ContextDetail
+} from './components.jsx'
 
 // ============================================
 // 服务导出
 // ============================================
 
-export { mcpService, registerBuiltinMCPs } from './services/MCPService.js'
-export { chatService } from './services/ChatService.js'
+export { mcpService, chatService, registerBuiltinMCPs } from './services.js'
 
 // ============================================
 // Store导出
@@ -63,9 +63,8 @@ export {
   contextStore, contextActions,
   chatStore, chatActions,
   panelStore, panelActions,
-  mcpStore, mcpActions,
-  settingsStore, settingsActions
-} from './store/index.js'
+  mcpStore, mcpActions
+} from './store.js'
 
 // ============================================
 // Hooks导出
@@ -76,20 +75,13 @@ export {
   useChatStore,
   usePanelStore,
   useMCPStore,
-  useSettingsStore,
   useChatService,
   useMCPService,
   useDraggable,
   useResizable,
   useAutoResize,
   useContextBridge
-} from './hooks/index.js'
-
-// ============================================
-// 类型导出 (JSDoc类型参考)
-// ============================================
-
-// 类型定义在 types/index.js 中，通过 JSDoc 注释使用
+} from './hooks.js'
 
 // ============================================
 // 初始化函数
@@ -108,6 +100,7 @@ export {
 
 /**
  * 初始化 Lyra AI Chat
+ * ⚠️ 注意：配置应该由 SettingsManager 管理，这个函数主要用于测试或独立使用
  * @param {LyraAIChatConfig} config
  */
 export function initLyraAIChat(config = {}) {
@@ -124,12 +117,12 @@ export function initLyraAIChat(config = {}) {
   if (apiKey) {
     const apiConfig = {
       apiKey,
-      baseUrl: baseUrl || 'https://api.anthropic.com',
-      model: model || 'claude-sonnet-4-5-20250929',
-      maxTokens: maxTokens || 4096
+      baseUrl: baseUrl || DEFAULT_AI_CONFIG.anthropic.baseUrl,
+      model: model || DEFAULT_AI_CONFIG.anthropic.model,
+      maxTokens: maxTokens || DEFAULT_AI_CONFIG.anthropic.maxTokens,
+      protocol: 'anthropic' // 默认使用 Anthropic 协议
     }
-    settingsActionsInternal.setAPIConfig(apiConfig)
-    chatServiceInternal.configure(apiConfig)
+    chatService.configure(apiConfig)
   }
 
   // 注册内置MCP
@@ -139,7 +132,7 @@ export function initLyraAIChat(config = {}) {
 
   // 添加预配置的MCP服务器
   for (const server of mcpServers) {
-    mcpServiceInternal.addCustomServer(server)
+    mcpService.addCustomServer(server)
   }
 
   console.log('[Lyra AI Chat] Initialized')
@@ -149,10 +142,10 @@ export function initLyraAIChat(config = {}) {
  * 添加浏览上下文消息
  * 供浏览面板调用，将查看的消息添加到AI对话上下文
  *
- * @param {import('./types').ContextMessage} message
+ * @param {import('./store').ContextMessage} message
  */
 export function addBrowsingContext(message) {
-  contextActionsInternal.addToContext(message)
+  contextActions.addToContext(message)
 }
 
 /**
@@ -161,7 +154,7 @@ export function addBrowsingContext(message) {
  * @param {number} toIndex
  */
 export function clearBrowsingContext(fromIndex, toIndex) {
-  contextActionsInternal.clearRange(fromIndex, toIndex)
+  contextActions.clearRange(fromIndex, toIndex)
 }
 
 /**
@@ -170,28 +163,28 @@ export function clearBrowsingContext(fromIndex, toIndex) {
  * @param {string} to
  */
 export function recordBranchSwitch(from, to) {
-  contextActionsInternal.recordBranchSwitch(from, to)
+  contextActions.recordBranchSwitch(from, to)
 }
 
 /**
  * 打开浮窗面板
  */
 export function openPanel() {
-  panelActionsInternal.open()
+  panelActions.open()
 }
 
 /**
  * 关闭浮窗面板
  */
 export function closePanel() {
-  panelActionsInternal.close()
+  panelActions.close()
 }
 
 /**
  * 切换浮窗面板
  */
 export function togglePanel() {
-  panelActionsInternal.toggle()
+  panelActions.toggle()
 }
 
 // ============================================
@@ -204,8 +197,8 @@ export default {
   FloatPanelTrigger: FloatPanelTriggerComponent,
 
   // 服务
-  mcpService: mcpServiceInternal,
-  chatService: chatServiceInternal,
+  mcpService,
+  chatService,
 
   // 初始化
   init: initLyraAIChat,

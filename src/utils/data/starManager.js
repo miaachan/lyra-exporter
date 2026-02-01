@@ -1,8 +1,9 @@
 // utils/data/starManager.js
 // 星标系统管理（仅用于claude_full_export格式）
 
-const STAR_STORAGE_PREFIX = 'starred_conversations_';
-const STAR_STORAGE_VERSION = 'v1';
+import StorageManager from '../storageManager';
+
+const STAR_STORAGE_KEY = 'starred_conversations_v1';
 
 export class StarManager {
   constructor(enabled = true) {
@@ -16,20 +17,13 @@ export class StarManager {
   loadStars() {
     if (!this.enabled) return new Map();
 
-    try {
-      const storageKey = `${STAR_STORAGE_PREFIX}${STAR_STORAGE_VERSION}`;
-      const savedData = localStorage.getItem(storageKey);
-      
-      if (savedData) {
-        const parsed = JSON.parse(savedData);
-        const starMap = new Map(Object.entries(parsed));
-        console.log(`[StarSystem] 加载了 ${starMap.size} 个星标设置`);
-        return starMap;
-      }
-    } catch (error) {
-      console.error('[StarSystem] 加载星标数据失败:', error);
+    const savedData = StorageManager.get(STAR_STORAGE_KEY);
+    if (savedData) {
+      const starMap = new Map(Object.entries(savedData));
+      console.log(`[StarSystem] 加载了 ${starMap.size} 个星标设置`);
+      return starMap;
     }
-    
+
     return new Map();
   }
 
@@ -39,13 +33,12 @@ export class StarManager {
   saveToStorage() {
     if (!this.enabled) return;
 
-    try {
-      const storageKey = `${STAR_STORAGE_PREFIX}${STAR_STORAGE_VERSION}`;
-      const dataToSave = Object.fromEntries(this.starredConversations);
-      localStorage.setItem(storageKey, JSON.stringify(dataToSave));
+    const dataToSave = Object.fromEntries(this.starredConversations);
+    const success = StorageManager.set(STAR_STORAGE_KEY, dataToSave);
+    if (success) {
       console.log(`[StarSystem] 保存了 ${this.starredConversations.size} 个星标设置`);
-    } catch (error) {
-      console.error('[StarSystem] 保存星标数据失败:', error);
+    } else {
+      console.error('[StarSystem] 保存星标数据失败');
     }
   }
 
@@ -104,10 +97,9 @@ export class StarManager {
     if (!this.enabled) return new Map(this.starredConversations);
 
     this.starredConversations.clear();
-    const storageKey = `${STAR_STORAGE_PREFIX}${STAR_STORAGE_VERSION}`;
-    localStorage.removeItem(storageKey);
+    StorageManager.remove(STAR_STORAGE_KEY);
     console.log('[StarSystem] 已清除所有手动星标设置');
-    
+
     // 返回新的Map实例，这样React能检测到变化
     return new Map(this.starredConversations);
   }
@@ -155,7 +147,7 @@ export class StarManager {
     if (!this.enabled) return null;
 
     return {
-      version: STAR_STORAGE_VERSION,
+      version: 'v1',
       timestamp: new Date().toISOString(),
       data: Object.fromEntries(this.starredConversations)
     };
@@ -168,7 +160,7 @@ export class StarManager {
     if (!this.enabled) return false;
 
     try {
-      if (data && data.version === STAR_STORAGE_VERSION && data.data) {
+      if (data && data.version === 'v1' && data.data) {
         this.starredConversations = new Map(Object.entries(data.data));
         this.saveToStorage();
         console.log(`[StarSystem] 导入了 ${this.starredConversations.size} 个星标设置`);

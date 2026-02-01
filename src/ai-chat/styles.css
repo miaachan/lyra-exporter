@@ -1,0 +1,1693 @@
+/**
+ * Lyra AI Chat - Styles
+ * 样式文件 - 映射到 Lyra Exporter 主题系统
+ *
+ * 使用CSS变量便于主题定制
+ * 所有组件使用 lyra- 前缀避免冲突
+ */
+
+/* ============================================
+   CSS 变量 - 映射到现有 Lyra Exporter 主题
+   ============================================ */
+
+:root {
+  /* 颜色 - 映射到 variables.css 主题变量 */
+  --lyra-color-primary: var(--accent-primary);
+  --lyra-color-primary-hover: var(--accent-color);
+  --lyra-color-secondary: var(--accent-secondary);
+  --lyra-color-success: #22c55e;
+  --lyra-color-warning: var(--accent-warning);
+  --lyra-color-error: var(--accent-danger);
+
+  --lyra-color-bg: var(--bg-primary);
+  --lyra-color-bg-secondary: var(--bg-secondary);
+  --lyra-color-bg-tertiary: var(--bg-tertiary);
+  --lyra-color-border: var(--border-primary);
+  --lyra-color-text: var(--text-primary);
+  --lyra-color-text-secondary: var(--text-secondary);
+  --lyra-color-text-tertiary: var(--text-tertiary);
+
+  /* 阴影 - 映射到现有阴影变量 */
+  --lyra-shadow-sm: var(--shadow-sm);
+  --lyra-shadow-md: var(--shadow-md);
+  --lyra-shadow-lg: var(--shadow-lg);
+  --lyra-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+
+  /* 圆角 - 映射到现有圆角变量 */
+  --lyra-radius-sm: var(--radius-sm);
+  --lyra-radius-md: var(--radius-md);
+  --lyra-radius-lg: var(--radius-lg);
+  --lyra-radius-full: 9999px;
+
+  /* 间距 - 保持独立定义 */
+  --lyra-space-xs: 4px;
+  --lyra-space-sm: 8px;
+  --lyra-space-md: 12px;
+  --lyra-space-lg: 16px;
+  --lyra-space-xl: 24px;
+
+  /* 字体 - 映射到现有字体变量 */
+  --lyra-font-family: var(--font-system);
+  --lyra-font-size-xs: 11px;
+  --lyra-font-size-sm: 12px;
+  --lyra-font-size-md: 14px;
+  --lyra-font-size-lg: 16px;
+
+  /* 过渡 - 映射到现有过渡变量 */
+  --lyra-transition-fast: var(--transition-fast);
+  --lyra-transition-normal: var(--transition-normal);
+  --lyra-transition-slow: 0.3s ease;
+}
+
+/* 暗色主题 - 由 Lyra Exporter 主题系统自动处理 */
+/* 不需要单独定义，因为变量已映射到主题变量 */
+
+/* ============================================
+   浮窗面板
+   ============================================ */
+
+.lyra-float-panel {
+  position: fixed;
+  z-index: 9990;
+  display: flex;
+  flex-direction: column;
+  background: var(--lyra-color-bg);
+  border: 1px solid var(--lyra-color-border);
+  border-radius: var(--lyra-radius-lg);
+  box-shadow: var(--lyra-shadow-xl);
+  font-family: var(--lyra-font-family);
+  font-size: var(--lyra-font-size-md);
+  color: var(--lyra-color-text);
+  overflow: hidden;
+}
+
+.lyra-float-panel--dragging {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.lyra-float-panel--resizing {
+  user-select: none;
+}
+
+.lyra-float-panel--pinned {
+  /* 固定时的样式 */
+}
+
+.lyra-float-panel--minimized {
+  width: auto;
+  height: auto;
+  padding: var(--lyra-space-sm) var(--lyra-space-md);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--lyra-space-sm);
+}
+
+/* 头部 */
+.lyra-float-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--lyra-space-sm) var(--lyra-space-md);
+  background: var(--lyra-color-bg-secondary);
+  border-bottom: 1px solid var(--lyra-color-border);
+  cursor: grab;
+  user-select: none;
+}
+
+.lyra-float-panel__title {
+  display: flex;
+  align-items: center;
+  gap: var(--lyra-space-sm);
+  font-weight: 500;
+}
+
+.lyra-float-panel__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--lyra-space-xs);
+}
+
+/* 内容区 */
+.lyra-float-panel__body {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 调整大小手柄 */
+.lyra-float-panel__resize-handle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 16px;
+  height: 16px;
+  cursor: se-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--lyra-color-text-tertiary);
+}
+
+/* 触发按钮 */
+.lyra-float-trigger {
+  position: fixed;
+  z-index: 100 !important;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--lyra-radius-full);
+  border: none;
+  background: var(--lyra-color-primary);
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  box-shadow: var(--lyra-shadow-lg);
+  transition: all var(--lyra-transition-normal);
+}
+
+.lyra-float-trigger:hover {
+  background: var(--lyra-color-primary-hover);
+  transform: scale(1.05);
+}
+
+.lyra-float-trigger--bottom-right {
+  right: 20px;
+  bottom: 20px;
+}
+
+.lyra-float-trigger--bottom-left {
+  left: 20px;
+  bottom: 20px;
+}
+
+/* 移动端隐藏触发按钮 */
+@media (max-width: 1023px) {
+  .lyra-float-trigger {
+    display: none !important;
+  }
+}
+
+/* ============================================
+   对话面板
+   ============================================ */
+
+.lyra-chat-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.lyra-chat-panel--unconfigured {
+  align-items: center;
+  justify-content: center;
+}
+
+.lyra-chat-panel__notice {
+  text-align: center;
+  padding: var(--lyra-space-xl);
+}
+
+.lyra-chat-panel__context {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--lyra-space-sm) var(--lyra-space-md);
+  background: var(--lyra-color-bg-tertiary);
+}
+
+.lyra-chat-panel__toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--lyra-space-sm);
+  padding: var(--lyra-space-xs) var(--lyra-space-md);
+}
+
+.lyra-chat-panel__error {
+  color: var(--lyra-color-error);
+  font-size: var(--lyra-font-size-sm);
+}
+
+.lyra-chat-panel__messages {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.lyra-chat-panel__input {
+  border-top: 1px solid var(--lyra-color-border);
+}
+
+/* ============================================
+   消息列表
+   ============================================ */
+
+.lyra-message-list {
+  padding: var(--lyra-space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--lyra-space-md);
+}
+
+.lyra-message-list--empty {
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.lyra-message-list__placeholder {
+  text-align: center;
+  color: var(--lyra-color-text-secondary);
+}
+
+.lyra-message-list__placeholder-icon {
+  font-size: 48px;
+  margin-bottom: var(--lyra-space-md);
+}
+
+/* 消息 */
+.lyra-message {
+  display: flex;
+  gap: var(--lyra-space-sm);
+}
+
+.lyra-message--user {
+  flex-direction: row-reverse;
+}
+
+.lyra-message__avatar {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.lyra-message__content {
+  position: relative;
+  max-width: 80%;
+  padding: var(--lyra-space-sm) var(--lyra-space-md);
+  border-radius: var(--lyra-radius-md);
+  background: var(--lyra-color-bg-secondary);
+}
+
+.lyra-message--user .lyra-message__content {
+  background: var(--lyra-color-primary);
+  color: white;
+}
+
+.lyra-message--error .lyra-message__content {
+  background: #fee2e2;
+  color: var(--lyra-color-error);
+}
+
+.lyra-message__time {
+  font-size: var(--lyra-font-size-xs);
+  color: var(--lyra-color-text-tertiary);
+  margin-top: var(--lyra-space-xs);
+}
+
+.lyra-message__cursor {
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* 打字动画 */
+.lyra-message__typing {
+  display: flex;
+  gap: 4px;
+}
+
+.lyra-message__typing span {
+  width: 6px;
+  height: 6px;
+  background: var(--lyra-color-text-tertiary);
+  border-radius: 50%;
+  animation: typing 1.4s infinite ease-in-out;
+}
+
+.lyra-message__typing span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.lyra-message__typing span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typing {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-6px); }
+}
+
+/* 消息操作按钮 */
+.lyra-message__actions {
+  position: absolute;
+  top: -8px;
+  right: 8px;
+  display: none;
+  align-items: center;
+  gap: 2px;
+  background: var(--lyra-color-bg);
+  border: 1px solid var(--lyra-color-border);
+  border-radius: var(--lyra-radius-sm);
+  padding: 2px;
+  box-shadow: var(--lyra-shadow-sm);
+}
+
+.lyra-message:hover .lyra-message__actions {
+  display: flex;
+}
+
+.lyra-message--editing .lyra-message__actions {
+  display: flex;
+}
+
+/* 消息编辑样式 (保留用于全局，具体样式在下方) */
+
+/* 消息元数据 */
+.lyra-message__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--lyra-space-sm);
+  margin-top: var(--lyra-space-xs);
+}
+
+.lyra-message__edited {
+  font-size: var(--lyra-font-size-xs);
+  color: var(--lyra-color-text-tertiary);
+  font-style: italic;
+}
+
+/* 用户消息文本样式 */
+.lyra-message__user-text {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* Markdown 渲染样式 */
+.lyra-message__markdown {
+  line-height: 1.6;
+  word-wrap: break-word;
+}
+
+.lyra-message__markdown h1,
+.lyra-message__markdown h2,
+.lyra-message__markdown h3,
+.lyra-message__markdown h4,
+.lyra-message__markdown h5,
+.lyra-message__markdown h6 {
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.lyra-message__markdown h1 { font-size: 1.5em; }
+.lyra-message__markdown h2 { font-size: 1.3em; }
+.lyra-message__markdown h3 { font-size: 1.15em; }
+.lyra-message__markdown h4 { font-size: 1em; }
+
+.lyra-message__markdown p {
+  margin-bottom: 0.75em;
+}
+
+.lyra-message__markdown p:last-child {
+  margin-bottom: 0;
+}
+
+.lyra-message__markdown a {
+  color: var(--lyra-color-primary);
+  text-decoration: none;
+}
+
+.lyra-message__markdown a:hover {
+  text-decoration: underline;
+}
+
+.lyra-message__markdown code {
+  background: var(--lyra-color-bg-tertiary);
+  padding: 0.2em 0.4em;
+  border-radius: var(--lyra-radius-sm);
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 0.9em;
+}
+
+.lyra-message__markdown pre {
+  margin: 0.75em 0;
+  border-radius: var(--lyra-radius-md);
+  overflow-x: auto;
+}
+
+.lyra-message__markdown pre code {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+}
+
+.lyra-message__markdown ul,
+.lyra-message__markdown ol {
+  margin-bottom: 0.75em;
+  padding-left: 1.5em;
+}
+
+.lyra-message__markdown li {
+  margin-bottom: 0.25em;
+}
+
+.lyra-message__markdown blockquote {
+  margin: 0.75em 0;
+  padding-left: 1em;
+  border-left: 3px solid var(--lyra-color-border);
+  color: var(--lyra-color-text-secondary);
+}
+
+.lyra-message__markdown table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.75em 0;
+}
+
+.lyra-message__markdown th,
+.lyra-message__markdown td {
+  border: 1px solid var(--lyra-color-border);
+  padding: 0.5em;
+  text-align: left;
+}
+
+.lyra-message__markdown th {
+  background: var(--lyra-color-bg-tertiary);
+  font-weight: 600;
+}
+
+.lyra-message__markdown hr {
+  border: none;
+  border-top: 1px solid var(--lyra-color-border);
+  margin: 1em 0;
+}
+
+/* 用户消息的 Markdown 样式覆盖（保持白色文本） */
+.lyra-message--user .lyra-message__markdown {
+  color: white;
+}
+
+.lyra-message--user .lyra-message__markdown a {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.lyra-message--user .lyra-message__markdown code {
+  background: rgba(0, 0, 0, 0.2);
+  color: white;
+}
+
+.lyra-message--user .lyra-message__markdown blockquote {
+  border-left-color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* 代码高亮块样式调整 */
+.lyra-message__markdown pre > div {
+  margin: 0 !important;
+  border-radius: var(--lyra-radius-md);
+}
+
+/* 占位符样式 */
+.lyra-message__placeholder {
+  color: var(--lyra-color-text-tertiary);
+  font-style: italic;
+}
+
+/* ============================================
+   输入框
+   ============================================ */
+
+.lyra-chat-input {
+  padding: var(--lyra-space-md);
+}
+
+.lyra-chat-input__wrapper {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--lyra-space-sm);
+  background: var(--lyra-color-bg-secondary);
+  border: 1px solid var(--lyra-color-border);
+  border-radius: var(--lyra-radius-md);
+  padding: var(--lyra-space-sm);
+}
+
+.lyra-chat-input__textarea {
+  flex: 1;
+  border: none;
+  background: transparent;
+  resize: none;
+  min-height: 24px;
+  max-height: 150px;
+  font-family: inherit;
+  font-size: inherit;
+  outline: none;
+}
+
+.lyra-chat-input__hint {
+  font-size: var(--lyra-font-size-xs);
+  color: var(--lyra-color-text-tertiary);
+  margin-top: var(--lyra-space-xs);
+  text-align: right;
+}
+
+/* ============================================
+   通用组件
+   ============================================ */
+
+/* 按钮 */
+.lyra-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--lyra-space-xs);
+  padding: var(--lyra-space-sm) var(--lyra-space-md);
+  border: none;
+  border-radius: var(--lyra-radius-md);
+  font-family: inherit;
+  font-size: var(--lyra-font-size-md);
+  cursor: pointer;
+  transition: all var(--lyra-transition-fast);
+}
+
+.lyra-button--default {
+  background: var(--lyra-color-bg-secondary);
+  color: var(--lyra-color-text);
+}
+
+.lyra-button--primary {
+  background: var(--lyra-color-primary);
+  color: white;
+}
+
+.lyra-button--ghost {
+  background: transparent;
+  color: var(--lyra-color-text-secondary);
+}
+
+.lyra-button--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.lyra-button--sm {
+  padding: var(--lyra-space-xs) var(--lyra-space-sm);
+  font-size: var(--lyra-font-size-sm);
+}
+
+/* 图标按钮 */
+.lyra-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: var(--lyra-space-xs);
+  border-radius: var(--lyra-radius-sm);
+  color: var(--lyra-color-text-secondary);
+  transition: all var(--lyra-transition-fast);
+}
+
+.lyra-icon-button:hover {
+  background: var(--lyra-color-bg-tertiary);
+  color: var(--lyra-color-text);
+}
+
+.lyra-icon-button--primary:hover {
+  background: var(--lyra-color-primary);
+  color: white;
+}
+
+/* 输入框 */
+.lyra-input,
+.lyra-textarea,
+.lyra-select {
+  width: 100%;
+  padding: var(--lyra-space-sm) var(--lyra-space-md);
+  border: 1px solid var(--lyra-color-border);
+  border-radius: var(--lyra-radius-md);
+  font-family: inherit;
+  font-size: var(--lyra-font-size-md);
+  background: var(--lyra-color-bg);
+  color: var(--lyra-color-text);
+  outline: none;
+  transition: border-color var(--lyra-transition-fast);
+}
+
+.lyra-input:focus,
+.lyra-textarea:focus,
+.lyra-select:focus {
+  border-color: var(--lyra-color-primary);
+}
+
+/* 开关 */
+.lyra-switch {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+}
+
+.lyra-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.lyra-switch__slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--lyra-color-bg-tertiary);
+  border-radius: var(--lyra-radius-full);
+  transition: var(--lyra-transition-fast);
+}
+
+.lyra-switch__slider::before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  border-radius: 50%;
+  transition: var(--lyra-transition-fast);
+}
+
+.lyra-switch--checked .lyra-switch__slider {
+  background-color: var(--lyra-color-primary);
+}
+
+.lyra-switch--checked .lyra-switch__slider::before {
+  transform: translateX(16px);
+}
+
+/* 徽章 */
+.lyra-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--lyra-space-xs);
+  padding: 2px var(--lyra-space-sm);
+  font-size: var(--lyra-font-size-xs);
+  border-radius: var(--lyra-radius-full);
+  background: var(--lyra-color-bg-tertiary);
+  color: var(--lyra-color-text-secondary);
+}
+
+.lyra-badge--info {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.lyra-badge--success {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.lyra-badge--warning {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.lyra-badge--error {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* 标签页 */
+.lyra-tabs {
+  display: flex;
+  gap: var(--lyra-space-xs);
+  padding: var(--lyra-space-sm);
+  background: var(--lyra-color-bg-secondary);
+  border-bottom: 1px solid var(--lyra-color-border);
+}
+
+.lyra-tabs__tab {
+  display: flex;
+  align-items: center;
+  gap: var(--lyra-space-xs);
+  padding: var(--lyra-space-sm) var(--lyra-space-md);
+  border: none;
+  background: transparent;
+  color: var(--lyra-color-text-secondary);
+  font-size: var(--lyra-font-size-sm);
+  cursor: pointer;
+  border-radius: var(--lyra-radius-md);
+  transition: all var(--lyra-transition-fast);
+}
+
+.lyra-tabs__tab:hover {
+  background: var(--lyra-color-bg-tertiary);
+}
+
+.lyra-tabs__tab--active {
+  background: var(--lyra-color-bg);
+  color: var(--lyra-color-primary);
+}
+
+/* 分割线 */
+.lyra-divider {
+  height: 1px;
+  background: var(--lyra-color-border);
+  margin: var(--lyra-space-sm) 0;
+}
+
+/* 表单 */
+.lyra-form-group {
+  margin-bottom: var(--lyra-space-md);
+}
+
+.lyra-form-group label {
+  display: block;
+  margin-bottom: var(--lyra-space-xs);
+  font-size: var(--lyra-font-size-sm);
+  font-weight: 500;
+  color: var(--lyra-color-text);
+}
+
+.lyra-form-hint {
+  display: block;
+  margin-top: var(--lyra-space-xs);
+  font-size: var(--lyra-font-size-xs);
+  color: var(--lyra-color-text-tertiary);
+}
+
+.lyra-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--lyra-space-sm);
+  margin-top: var(--lyra-space-lg);
+}
+
+.lyra-radio-group {
+  display: flex;
+  gap: var(--lyra-space-md);
+}
+
+.lyra-radio-group label {
+  display: flex;
+  align-items: center;
+  gap: var(--lyra-space-xs);
+  cursor: pointer;
+}
+
+/* 加载动画 */
+.lyra-icon-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================
+   管理面板
+   ============================================ */
+
+.lyra-manage-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.lyra-manage-panel__content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--lyra-space-md);
+}
+
+.lyra-manage-panel__footer {
+  padding: var(--lyra-space-sm) var(--lyra-space-md);
+  border-top: 1px solid var(--lyra-color-border);
+}
+
+/* MCP服务器列表 */
+.lyra-mcp-server-list__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--lyra-space-md);
+}
+
+.lyra-mcp-server-list__stats {
+  display: flex;
+  gap: var(--lyra-space-sm);
+}
+
+.lyra-mcp-server-list__actions {
+  display: flex;
+  gap: var(--lyra-space-sm);
+}
+
+.lyra-mcp-server-list__section {
+  margin-bottom: var(--lyra-space-lg);
+}
+
+.lyra-mcp-server-list__title {
+  font-size: var(--lyra-font-size-sm);
+  font-weight: 500;
+  color: var(--lyra-color-text-secondary);
+  margin-bottom: var(--lyra-space-sm);
+}
+
+.lyra-mcp-server-list__empty {
+  color: var(--lyra-color-text-tertiary);
+  font-size: var(--lyra-font-size-sm);
+  text-align: center;
+  padding: var(--lyra-space-lg);
+}
+
+/* 服务器项 */
+.lyra-server-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--lyra-space-sm) var(--lyra-space-md);
+  background: var(--lyra-color-bg-secondary);
+  border-radius: var(--lyra-radius-md);
+  margin-bottom: var(--lyra-space-sm);
+}
+
+.lyra-server-item--active {
+  border-left: 3px solid var(--lyra-color-success);
+}
+
+.lyra-server-item__header {
+  display: flex;
+  align-items: center;
+  gap: var(--lyra-space-sm);
+}
+
+.lyra-server-item__name {
+  font-weight: 500;
+}
+
+.lyra-server-item__meta {
+  font-size: var(--lyra-font-size-xs);
+  color: var(--lyra-color-text-tertiary);
+  margin-top: var(--lyra-space-xs);
+}
+
+.lyra-server-item__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--lyra-space-sm);
+}
+
+/* 工具列表 */
+.lyra-mcp-tool-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--lyra-space-sm);
+}
+
+.lyra-mcp-tool-item {
+  display: flex;
+  align-items: center;
+  gap: var(--lyra-space-xs);
+  padding: var(--lyra-space-xs) var(--lyra-space-sm);
+  background: var(--lyra-color-bg-tertiary);
+  border-radius: var(--lyra-radius-sm);
+  font-size: var(--lyra-font-size-xs);
+}
+
+.lyra-mcp-tool-item__server {
+  color: var(--lyra-color-text-tertiary);
+}
+
+/* API设置 */
+.lyra-api-settings__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--lyra-space-lg);
+}
+
+.lyra-api-settings__error {
+  color: var(--lyra-color-error);
+  padding: var(--lyra-space-sm);
+  background: #fee2e2;
+  border-radius: var(--lyra-radius-md);
+  margin-bottom: var(--lyra-space-md);
+}
+
+.lyra-api-settings__note {
+  margin-top: var(--lyra-space-lg);
+  padding: var(--lyra-space-md);
+  background: var(--lyra-color-bg-secondary);
+  border-radius: var(--lyra-radius-md);
+  font-size: var(--lyra-font-size-sm);
+}
+
+.lyra-api-settings__note h5 {
+  margin-bottom: var(--lyra-space-sm);
+}
+
+.lyra-api-settings__note ul {
+  padding-left: var(--lyra-space-lg);
+  color: var(--lyra-color-text-secondary);
+}
+
+/* 上下文状态 */
+.lyra-context-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 1;
+}
+
+.lyra-context-status__info {
+  display: flex;
+  gap: var(--lyra-space-sm);
+}
+
+.lyra-context-status__actions {
+  display: flex;
+  gap: var(--lyra-space-xs);
+}
+
+/* 上下文详情 */
+.lyra-context-detail {
+  padding: var(--lyra-space-md);
+  background: var(--lyra-color-bg-secondary);
+  border-bottom: 1px solid var(--lyra-color-border);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.lyra-context-detail__section {
+  margin-bottom: var(--lyra-space-md);
+}
+
+.lyra-context-detail__section h5 {
+  font-size: var(--lyra-font-size-sm);
+  color: var(--lyra-color-text-secondary);
+  margin-bottom: var(--lyra-space-sm);
+}
+
+.lyra-context-detail__empty {
+  color: var(--lyra-color-text-tertiary);
+  font-size: var(--lyra-font-size-xs);
+}
+
+/* 关于页面 */
+.lyra-about-section {
+  line-height: 1.6;
+}
+
+.lyra-about-section__header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--lyra-space-sm);
+  margin-bottom: var(--lyra-space-md);
+}
+
+.lyra-about-section__version {
+  color: var(--lyra-color-text-tertiary);
+  font-size: var(--lyra-font-size-sm);
+}
+
+.lyra-about-section__description {
+  color: var(--lyra-color-text-secondary);
+  margin-bottom: var(--lyra-space-lg);
+}
+
+.lyra-about-section__features,
+.lyra-about-section__mcp-info,
+.lyra-about-section__links {
+  margin-bottom: var(--lyra-space-lg);
+}
+
+.lyra-about-section h4 {
+  margin-bottom: var(--lyra-space-sm);
+}
+
+.lyra-about-section ul {
+  padding-left: var(--lyra-space-lg);
+}
+
+.lyra-about-section li {
+  margin-bottom: var(--lyra-space-xs);
+}
+
+.lyra-about-section a {
+  color: var(--lyra-color-primary);
+  text-decoration: none;
+}
+
+.lyra-about-section a:hover {
+  text-decoration: underline;
+}
+
+/* ============================================
+   添加服务器表单
+   ============================================ */
+
+.lyra-add-server-form {
+  padding: var(--lyra-space-md);
+  background: var(--lyra-color-bg-tertiary);
+  border-radius: var(--lyra-radius-md);
+  margin-bottom: var(--lyra-space-md);
+}
+
+/* ============================================
+   上下文详情模态框 (Context Detail Modal)
+   ============================================ */
+
+/* 模态框遮罩 */
+.lyra-context-detail-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 9995;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--lyra-space-lg);
+}
+
+/* 模态框容器 - 覆盖原有样式 */
+.lyra-context-detail-overlay .lyra-context-detail {
+  background: var(--lyra-color-bg);
+  border-radius: var(--lyra-radius-lg);
+  box-shadow: var(--lyra-shadow-xl);
+  max-width: 600px;
+  width: 100%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  border-bottom: none;
+  padding: 0;
+}
+
+/* 头部 */
+.lyra-context-detail__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--lyra-space-md) var(--lyra-space-lg);
+  border-bottom: 1px solid var(--lyra-color-border);
+}
+
+.lyra-context-detail__header h4 {
+  margin: 0;
+  font-size: var(--lyra-font-size-lg);
+  font-weight: 600;
+}
+
+/* 内容区 */
+.lyra-context-detail__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--lyra-space-lg);
+}
+
+/* Section 头部 - 带按钮 */
+.lyra-context-detail__section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--lyra-space-sm);
+}
+
+.lyra-context-detail__section-header h5 {
+  margin: 0;
+  font-size: var(--lyra-font-size-sm);
+  color: var(--lyra-color-text-secondary);
+}
+
+/* 添加自定义内容表单 */
+.lyra-context-detail__add-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lyra-space-sm);
+  padding: var(--lyra-space-md);
+  background: var(--lyra-color-bg-tertiary);
+  border-radius: var(--lyra-radius-md);
+  margin-bottom: var(--lyra-space-md);
+}
+
+/* 上下文配置 */
+.lyra-context-detail__config {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--lyra-space-md);
+  padding: var(--lyra-space-sm) 0;
+}
+
+.lyra-context-detail__config--column {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.lyra-context-detail__config-label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lyra-space-xs);
+  flex: 1;
+  cursor: default;
+}
+
+.lyra-context-detail__config-label > span:first-child {
+  font-size: 0.9em;
+  font-weight: 500;
+  color: var(--lyra-color-text-primary);
+}
+
+.lyra-context-detail__config-desc {
+  font-size: 0.8em;
+  color: var(--lyra-color-text-tertiary);
+  line-height: 1.4;
+}
+
+/* 分支容器 */
+.lyra-context-detail__branches {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lyra-space-md);
+}
+
+/* 单个分支 */
+.lyra-context-detail__branch {
+  background: var(--lyra-color-bg-secondary);
+  border-radius: var(--lyra-radius-md);
+  overflow: hidden;
+}
+
+/* 分支头部 */
+.lyra-context-detail__branch-header {
+  display: flex;
+  align-items: center;
+  gap: var(--lyra-space-sm);
+  padding: var(--lyra-space-sm) var(--lyra-space-md);
+  background: var(--lyra-color-bg-tertiary);
+  border-bottom: 1px solid var(--lyra-color-border);
+}
+
+.lyra-context-detail__branch-name {
+  font-weight: 500;
+  font-size: var(--lyra-font-size-sm);
+}
+
+.lyra-context-detail__branch-count {
+  color: var(--lyra-color-text-tertiary);
+  font-size: var(--lyra-font-size-xs);
+}
+
+/* 列表 */
+.lyra-context-detail__list {
+  padding: var(--lyra-space-sm);
+}
+
+.lyra-context-detail__list--compact {
+  padding: var(--lyra-space-xs);
+}
+
+.lyra-context-detail__list--compact .lyra-context-detail__item {
+  padding: var(--lyra-space-xs) var(--lyra-space-sm);
+}
+
+/* 列表项 */
+.lyra-context-detail__item {
+  display: flex;
+  align-items: center;
+  gap: var(--lyra-space-sm);
+  padding: var(--lyra-space-sm);
+  font-size: var(--lyra-font-size-xs);
+  border-bottom: 1px solid var(--lyra-color-border);
+  border-radius: var(--lyra-radius-sm);
+  transition: background var(--lyra-transition-fast);
+}
+
+.lyra-context-detail__item:hover {
+  background: var(--lyra-color-bg-tertiary);
+}
+
+.lyra-context-detail__item--path {
+  background: transparent;
+}
+
+/* 消息索引 */
+.lyra-context-detail__index {
+  min-width: 32px;
+  color: var(--lyra-color-text-tertiary);
+  font-family: monospace;
+}
+
+/* 发送者图标 */
+.lyra-context-detail__sender {
+  width: 20px;
+  text-align: center;
+}
+
+/* 消息预览 */
+.lyra-context-detail__preview {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--lyra-color-text-secondary);
+}
+
+.lyra-context-detail__preview strong {
+  color: var(--lyra-color-primary);
+}
+
+/* 移除按钮 */
+.lyra-context-detail__remove {
+  opacity: 0;
+  transition: opacity var(--lyra-transition-fast);
+}
+
+.lyra-context-detail__item:hover .lyra-context-detail__remove {
+  opacity: 1;
+}
+
+/* 路径项目 */
+.lyra-context-detail__action {
+  width: 24px;
+  text-align: center;
+}
+
+.lyra-context-detail__detail {
+  flex: 1;
+  color: var(--lyra-color-text-secondary);
+}
+
+.lyra-context-detail__time {
+  color: var(--lyra-color-text-tertiary);
+  font-size: var(--lyra-font-size-xs);
+}
+
+/* 摘要 */
+.lyra-context-detail__summary {
+  color: var(--lyra-color-text-secondary);
+  font-style: italic;
+}
+
+/* ============================================
+   通用按钮变体
+   ============================================ */
+
+.lyra-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--lyra-space-xs);
+  padding: var(--lyra-space-sm) var(--lyra-space-md);
+  border: none;
+  border-radius: var(--lyra-radius-md);
+  font-family: inherit;
+  font-size: var(--lyra-font-size-sm);
+  cursor: pointer;
+  transition: all var(--lyra-transition-fast);
+  white-space: nowrap;
+}
+
+.lyra-btn--sm {
+  padding: var(--lyra-space-xs) var(--lyra-space-sm);
+  font-size: var(--lyra-font-size-xs);
+}
+
+.lyra-btn--xs {
+  padding: 2px var(--lyra-space-xs);
+  font-size: 10px;
+  border-radius: var(--lyra-radius-sm);
+}
+
+.lyra-btn--primary {
+  background: var(--lyra-color-primary);
+  color: white;
+}
+
+.lyra-btn--primary:hover {
+  background: var(--lyra-color-primary-hover);
+}
+
+.lyra-btn--primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.lyra-btn--secondary {
+  background: var(--lyra-color-bg-tertiary);
+  color: var(--lyra-color-text);
+}
+
+.lyra-btn--secondary:hover {
+  background: var(--lyra-color-bg-secondary);
+}
+
+.lyra-btn--danger {
+  background: var(--lyra-color-error);
+  color: white;
+}
+
+.lyra-btn--danger:hover {
+  opacity: 0.9;
+}
+
+/* ============================================
+   输入框变体
+   ============================================ */
+
+.lyra-input--sm,
+.lyra-textarea--sm {
+  padding: var(--lyra-space-xs) var(--lyra-space-sm);
+  font-size: var(--lyra-font-size-sm);
+}
+
+.lyra-textarea--sm {
+  resize: vertical;
+  min-height: 60px;
+}
+
+/* ============================================
+   AI 上下文详情面板
+   ============================================ */
+
+.lyra-ai-context-panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: var(--lyra-space-lg);
+  overflow-y: auto;
+}
+
+.lyra-ai-context-panel__content {
+  background: var(--lyra-color-bg);
+  border: 1px solid var(--lyra-color-border);
+  border-radius: var(--lyra-radius-lg);
+  box-shadow: var(--lyra-shadow-xl);
+  max-width: 900px;
+  width: 100%;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  font-size: var(--lyra-font-size-md);
+  color: var(--lyra-color-text);
+}
+
+.lyra-ai-context-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--lyra-space-lg);
+  background: var(--lyra-color-bg-secondary);
+  border-bottom: 1px solid var(--lyra-color-border);
+  flex-shrink: 0;
+}
+
+.lyra-ai-context-panel__title {
+  margin: 0;
+  font-size: var(--lyra-font-size-lg);
+  font-weight: 600;
+  color: var(--lyra-color-text);
+}
+
+.lyra-ai-context-panel__close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--lyra-color-text-secondary);
+  transition: all var(--lyra-transition-fast);
+  border-radius: var(--lyra-radius-sm);
+  font-size: 20px;
+}
+
+.lyra-ai-context-panel__close-btn:hover {
+  background: var(--lyra-color-bg-tertiary);
+  color: var(--lyra-color-text);
+}
+
+.lyra-ai-context-panel__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--lyra-space-lg);
+}
+
+.lyra-ai-context-panel__section {
+  margin-bottom: var(--lyra-space-xl);
+}
+
+.lyra-ai-context-panel__section:last-child {
+  margin-bottom: 0;
+}
+
+.lyra-ai-context-panel__section-title {
+  margin: 0 0 var(--lyra-space-md) 0;
+  font-size: var(--lyra-font-size-md);
+  font-weight: 600;
+  color: var(--lyra-color-text);
+  display: flex;
+  align-items: center;
+  gap: var(--lyra-space-sm);
+}
+
+/* 统计部分 */
+.lyra-ai-context-panel__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--lyra-space-md);
+  margin-bottom: var(--lyra-space-lg);
+  padding: var(--lyra-space-md);
+  background: var(--lyra-color-bg-secondary);
+  border-radius: var(--lyra-radius-md);
+}
+
+.lyra-ai-context-panel__stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lyra-space-xs);
+}
+
+.lyra-ai-context-panel__stat-label {
+  font-size: var(--lyra-font-size-sm);
+  color: var(--lyra-color-text-secondary);
+}
+
+.lyra-ai-context-panel__stat-value {
+  font-size: var(--lyra-font-size-lg);
+  font-weight: 600;
+  color: var(--lyra-color-primary);
+}
+
+/* 系统提示词 */
+.lyra-ai-context-panel__prompt-box {
+  background: var(--lyra-color-bg-secondary);
+  border: 1px solid var(--lyra-color-border);
+  border-radius: var(--lyra-radius-md);
+  padding: var(--lyra-space-md);
+  overflow: auto;
+  max-height: 300px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: var(--lyra-font-size-sm);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  color: var(--lyra-color-text-secondary);
+}
+
+.lyra-ai-context-panel__prompt-box:empty::before {
+  content: '(无系统提示词)';
+  color: var(--lyra-color-text-tertiary);
+  font-style: italic;
+}
+
+/* 分支消息 */
+.lyra-ai-context-panel__branches {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lyra-space-md);
+}
+
+.lyra-ai-context-panel__branch {
+  border: 1px solid var(--lyra-color-border);
+  border-radius: var(--lyra-radius-md);
+  overflow: hidden;
+}
+
+.lyra-ai-context-panel__branch-header {
+  display: flex;
+  align-items: center;
+  gap: var(--lyra-space-sm);
+  background: var(--lyra-color-bg-tertiary);
+  padding: var(--lyra-space-sm) var(--lyra-space-md);
+  border-bottom: 1px solid var(--lyra-color-border);
+}
+
+.lyra-ai-context-panel__branch-name {
+  font-weight: 600;
+  color: var(--lyra-color-text);
+  font-size: var(--lyra-font-size-sm);
+}
+
+.lyra-ai-context-panel__branch-count {
+  color: var(--lyra-color-text-secondary);
+  font-size: var(--lyra-font-size-xs);
+  margin-left: auto;
+}
+
+.lyra-ai-context-panel__messages {
+  padding: var(--lyra-space-xs);
+}
+
+.lyra-ai-context-panel__message {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lyra-space-xs);
+  padding: var(--lyra-space-sm);
+  border-bottom: 1px solid var(--lyra-color-border);
+  font-size: var(--lyra-font-size-sm);
+}
+
+.lyra-ai-context-panel__message:last-child {
+  border-bottom: none;
+}
+
+.lyra-ai-context-panel__message-header {
+  display: flex;
+  align-items: center;
+  gap: var(--lyra-space-sm);
+}
+
+.lyra-ai-context-panel__message-index {
+  flex-shrink: 0;
+  min-width: 32px;
+  color: var(--lyra-color-text-secondary);
+  font-weight: 500;
+  font-family: monospace;
+}
+
+.lyra-ai-context-panel__message-sender {
+  flex-shrink: 0;
+  font-size: var(--lyra-font-size-md);
+}
+
+.lyra-ai-context-panel__message-label {
+  flex-shrink: 0;
+  font-size: var(--lyra-font-size-xs);
+  color: var(--lyra-color-text-tertiary);
+  font-style: italic;
+}
+
+.lyra-ai-context-panel__empty-hint {
+  color: var(--lyra-color-text-tertiary);
+  font-style: italic;
+  text-align: center;
+  padding: var(--lyra-space-md);
+}
+
+.lyra-ai-context-panel__prompt-text {
+  margin: 0;
+}
+
+.lyra-ai-context-panel__message-text {
+  color: var(--lyra-color-text-secondary);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  line-height: 1.5;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: var(--lyra-font-size-xs);
+}
+
+/* 浏览路径 */
+.lyra-ai-context-panel__path {
+  border: 1px solid var(--lyra-color-border);
+  border-radius: var(--lyra-radius-md);
+  overflow: hidden;
+}
+
+.lyra-ai-context-panel__path-item {
+  display: flex;
+  align-items: center;
+  gap: var(--lyra-space-sm);
+  padding: var(--lyra-space-sm) var(--lyra-space-md);
+  border-bottom: 1px solid var(--lyra-color-border);
+  font-size: var(--lyra-font-size-sm);
+}
+
+.lyra-ai-context-panel__path-item:last-child {
+  border-bottom: none;
+}
+
+.lyra-ai-context-panel__path-item:nth-child(even) {
+  background: var(--lyra-color-bg-secondary);
+}
+
+.lyra-ai-context-panel__path-action {
+  flex-shrink: 0;
+  font-size: var(--lyra-font-size-md);
+  color: var(--lyra-color-primary);
+}
+
+.lyra-ai-context-panel__path-detail {
+  flex: 1;
+  color: var(--lyra-color-text-secondary);
+}
+
+.lyra-ai-context-panel__path-time {
+  flex-shrink: 0;
+  color: var(--lyra-color-text-tertiary);
+  font-size: var(--lyra-font-size-xs);
+}
+
+/* 消息编辑模式 */
+.lyra-message__edit-mode {
+  width: 100%;
+  display: block;
+}
+
+.lyra-message--editing .lyra-message__edit-textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: var(--lyra-space-sm);
+  border: 1px solid var(--lyra-color-primary);
+  border-radius: var(--lyra-radius-sm);
+  background: var(--lyra-color-bg);
+  color: var(--lyra-color-text);
+  font-family: var(--lyra-font-family);
+  font-size: var(--lyra-font-size-md);
+  resize: vertical;
+  outline: none;
+  line-height: 1.5;
+}
+
+.lyra-message--editing .lyra-message__edit-textarea:focus {
+  border-color: var(--lyra-color-primary);
+  box-shadow: 0 0 0 2px var(--lyra-color-bg-tertiary);
+}

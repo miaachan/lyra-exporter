@@ -883,6 +883,13 @@
   color: #000000;
   border-color: #e0e0e0;
 }
+
+.timeline-avatar.assistant.platform-copilot  {
+  background: #ffffff;
+  color: #000000;
+  border-color: #e0e0e0;
+}
+
 .sender-info {
   display: flex;
   flex-direction: column;

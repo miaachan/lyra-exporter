@@ -179,13 +179,22 @@
   text-decoration-color: var(--accent-info);
 }
 
-.message-text strong {
-  font-weight: 600;
+.message-text strong,
+.message-text b {
+  font-weight: bold;
   color: var(--text-primary);
 }
 
-.message-text em {
+.message-text em,
+.message-text i {
   font-style: italic;
+  color: var(--text-primary);
+}
+
+/* 确保列表中的加粗文本也能正确显示 */
+.message-text li strong,
+.message-text li b {
+  font-weight: bold;
   color: var(--text-primary);
 }
 

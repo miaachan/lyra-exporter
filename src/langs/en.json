@@ -440,6 +440,13 @@
       "language": {
         "label": "Language",
         "description": "Select interface display language (Requires manual restart)"
+      },
+      "deviceMode": {
+        "label": "Device Mode",
+        "description": "Choose interface layout mode",
+        "auto": "Auto Detect",
+        "mobile": "Force Mobile",
+        "desktop": "Force Desktop"
       }
     },
     "copyOptions": {
@@ -613,6 +620,31 @@
         "description": "Loaded embedding model name"
       },
       "info": "Please ensure LM Studio is running and has loaded an embedding model. Recommended: qwen3-embedding or similar lightweight models."
+    },
+    "aiChatContext": {
+      "title": "AI Chat Context Configuration",
+      "description": "Configure how the AI chat panel tracks and processes browsing message context",
+      "autoTrack": {
+        "label": "Auto Track",
+        "description": "Automatically add messages to AI chat context while browsing"
+      },
+      "maxContentLength": {
+        "label": "Message Truncation Length",
+        "description": "Maximum characters to keep per message (0 = unlimited)"
+      },
+      "includeThinking": {
+        "label": "Include Thinking",
+        "description": "Add Claude's thinking process to context"
+      },
+      "includeArtifacts": {
+        "label": "Include Artifacts",
+        "description": "Add Artifacts (code, documents) to context"
+      },
+      "includeAttachments": {
+        "label": "Include Attachments",
+        "description": "Add attachment information to context"
+      },
+      "info": "These settings control how the AI chat panel processes message context. Adjust truncation length to balance context completeness and token consumption."
     },
     "mcp": {
       "title": "MCP Server Management",
@@ -865,7 +897,13 @@
       "browsingMessages": "Browsing Messages",
       "browsingPath": "Browsing Path",
       "summaries": "Generated Summaries",
-      "remove": "Remove"
+      "remove": "Remove",
+      "config": "Context Configuration",
+      "maxContentLength": "Message Truncation Length",
+      "maxContentLengthDesc": "Maximum characters to keep per message (0 = unlimited)",
+      "systemPrompt": "Custom System Prompt",
+      "systemPromptDesc": "Leave empty to use default prompt. Available placeholders: {contextSummary}, {pathSummary}",
+      "systemPromptPlaceholder": "Leave empty to use default system prompt..."
     },
     "manage": {
       "tabs": {

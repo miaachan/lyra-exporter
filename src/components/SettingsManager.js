@@ -7,10 +7,13 @@ import { StorageUtils } from '../App';
 import { CopyConfigManager } from '../utils/copyManager';
 import LanguageSwitcher from './LanguageSwitcher';
 import { useI18n } from '../index.js';
+import StorageManager from '../utils/storageManager';
 
 // AI Chat相关导入
-import { chatService } from '../ai-chat/services/ChatService.js';
-import { useMCPService } from '../ai-chat/hooks/index.js';
+import { chatService, useMCPService } from '../ai-chat/index.js';
+
+// 导入共享AI配置
+import { DEFAULT_AI_CONFIG } from '../config/aiConfig.js';
 
 /**
  * 导出配置管理器
@@ -72,6 +75,7 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
   const [settings, setSettings] = useState({
     theme: 'dark',
     language: 'zh-CN',
+    deviceMode: 'auto', // 'auto' | 'mobile' | 'desktop'
     copyOptions: {
       includeThinking: false,
       includeArtifacts: false,
@@ -102,11 +106,8 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
       includeAttachments: true
     },
     aiChatConfig: {
-      protocol: 'anthropic',
-      apiKey: '',
-      baseUrl: 'https://api.anthropic.com',
-      model: 'claude-3-5-sonnet-20241022',
-      maxTokens: 4096
+      ...DEFAULT_AI_CONFIG.anthropic,
+      apiKey: ''
     },
     embeddingConfig: {
       provider: 'lmstudio',
@@ -129,28 +130,26 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
   // 初始化设置
   useEffect(() => {
     if (isOpen) {
-      const storedSearchOptions = localStorage.getItem('search-options');
-      const storedAiChatConfig = localStorage.getItem('lyra-ai-chat-config');
-      const storedEmbeddingConfig = localStorage.getItem('semantic-embedding-config');
+      const storedSearchOptions = StorageManager.get('search-options');
+      const storedAiChatConfig = StorageManager.get('ai-chat-config');
+      const storedEmbeddingConfig = StorageManager.get('semantic-embedding-config');
 
       setSettings({
         theme: ThemeUtils.getCurrentTheme(),
         language: StorageUtils.getLocalStorage('app-language', 'en-US'),
+        deviceMode: StorageUtils.getLocalStorage('device-mode', 'auto'),
         copyOptions: CopyConfigManager.getConfig(),
-        searchOptions: storedSearchOptions ? JSON.parse(storedSearchOptions) : {
+        searchOptions: storedSearchOptions || {
           removeDuplicates: true,
           includeThinking: true,
           includeArtifacts: true
         },
         exportOptions: ExportConfigManager.getConfig(),
-        aiChatConfig: storedAiChatConfig ? JSON.parse(storedAiChatConfig) : {
-          protocol: 'anthropic',
-          apiKey: '',
-          baseUrl: 'https://api.anthropic.com',
-          model: 'claude-3-5-sonnet-20241022',
-          maxTokens: 4096
+        aiChatConfig: storedAiChatConfig || {
+          ...DEFAULT_AI_CONFIG.anthropic,
+          apiKey: ''
         },
-        embeddingConfig: storedEmbeddingConfig ? JSON.parse(storedEmbeddingConfig) : {
+        embeddingConfig: storedEmbeddingConfig || {
           provider: 'lmstudio',
           lmStudioUrl: 'http://localhost:1234',
           modelName: 'qwen3-embedding'
@@ -207,12 +206,12 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
 
   const handleSearchOptionChange = (option, value) => {
     const newOptions = { ...settings.searchOptions, [option]: value };
-    localStorage.setItem('search-options', JSON.stringify(newOptions));
+    StorageManager.set('search-options', newOptions);
     setSettings(prev => ({ ...prev, searchOptions: newOptions }));
   };
 
-  const handleExportOptionChange = (option, value) => {
-    const newOptions = { ...settings.exportOptions, [option]: value };
+  const handleExportOptionChange = (option, value, additionalUpdates = {}) => {
+    const newOptions = { ...settings.exportOptions, [option]: value, ...additionalUpdates };
 
     if (option === 'senderFormat') {
       if (value === 'human-assistant') {
@@ -237,9 +236,16 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
     setSettings(prev => ({ ...prev, language }));
   };
 
+  const handleDeviceModeChange = (deviceMode) => {
+    StorageUtils.setLocalStorage('device-mode', deviceMode);
+    setSettings(prev => ({ ...prev, deviceMode }));
+    // 触发自定义事件通知其他组件
+    window.dispatchEvent(new CustomEvent('deviceModeChange', { detail: { deviceMode } }));
+  };
+
   const handleAIChatConfigChange = (updates) => {
     const newConfig = { ...settings.aiChatConfig, ...updates };
-    localStorage.setItem('lyra-ai-chat-config', JSON.stringify(newConfig));
+    StorageManager.set('ai-chat-config', newConfig);
     setSettings(prev => ({ ...prev, aiChatConfig: newConfig }));
 
     // 同步到chatService
@@ -250,7 +256,7 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
 
   const handleEmbeddingConfigChange = (updates) => {
     const newConfig = { ...settings.embeddingConfig, ...updates };
-    localStorage.setItem('semantic-embedding-config', JSON.stringify(newConfig));
+    StorageManager.set('semantic-embedding-config', newConfig);
     setSettings(prev => ({ ...prev, embeddingConfig: newConfig }));
   };
 
@@ -295,6 +301,7 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
                 settings={settings}
                 onThemeChange={handleThemeChange}
                 onLanguageChange={handleLanguageChange}
+                onDeviceModeChange={handleDeviceModeChange}
                 onCopyOptionChange={handleCopyOptionChange}
                 onSearchOptionChange={handleSearchOptionChange}
               />
@@ -326,7 +333,7 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
 /**
  * 通用设置面板
  */
-const GeneralSettings = ({ settings, onThemeChange, onLanguageChange, onCopyOptionChange, onSearchOptionChange }) => {
+const GeneralSettings = ({ settings, onThemeChange, onLanguageChange, onDeviceModeChange, onCopyOptionChange, onSearchOptionChange }) => {
   const { t } = useI18n();
 
   return (
@@ -343,6 +350,18 @@ const GeneralSettings = ({ settings, onThemeChange, onLanguageChange, onCopyOpti
             className="settings-language-switcher"
             onLanguageChange={onLanguageChange}
           />
+        </SettingItem>
+
+        <SettingItem label={t('settings.appearance.deviceMode.label')} description={t('settings.appearance.deviceMode.description')}>
+          <select
+            className="setting-select"
+            value={settings.deviceMode}
+            onChange={(e) => onDeviceModeChange(e.target.value)}
+          >
+            <option value="auto">{t('settings.appearance.deviceMode.auto')}</option>
+            <option value="mobile">{t('settings.appearance.deviceMode.mobile')}</option>
+            <option value="desktop">{t('settings.appearance.deviceMode.desktop')}</option>
+          </select>
         </SettingItem>
       </SettingsSection>
 
@@ -461,12 +480,9 @@ const ExportSettings = ({ settings, onExportOptionChange }) => {
             onChange={(e) => {
               const value = e.target.value;
               if (value === 'none') {
-                const newOptions = { ...settings.exportOptions, includeNumbering: false };
-                ExportConfigManager.saveConfig(newOptions);
                 onExportOptionChange('includeNumbering', false);
               } else {
-                onExportOptionChange('includeNumbering', true);
-                onExportOptionChange('numberingFormat', value);
+                onExportOptionChange('includeNumbering', true, { numberingFormat: value });
               }
             }}
           >
@@ -521,8 +537,7 @@ const ExportSettings = ({ settings, onExportOptionChange }) => {
               if (value === 'none') {
                 onExportOptionChange('includeHeaderPrefix', false);
               } else {
-                onExportOptionChange('includeHeaderPrefix', true);
-                onExportOptionChange('headerLevel', Number(value));
+                onExportOptionChange('includeHeaderPrefix', true, { headerLevel: Number(value) });
               }
             }}
           >
@@ -586,14 +601,25 @@ const AISettings = ({ settings, onAIChatConfigChange, onEmbeddingConfigChange })
   ];
 
   const handleProtocolChange = (newProtocol) => {
-    const updates = { protocol: newProtocol };
-    if (newProtocol === 'openai') {
-      updates.baseUrl = 'https://api.openai.com/v1';
-      updates.model = 'gpt-4o';
-    } else {
-      updates.baseUrl = 'https://api.anthropic.com';
-      updates.model = 'claude-3-5-sonnet-20241022';
+    // 只更新协议，保留用户已设置的 baseUrl 和 model
+    // 仅当当前值是另一个协议的默认值时才替换
+    const newConfig = newProtocol === 'openai' ? DEFAULT_AI_CONFIG.openai : DEFAULT_AI_CONFIG.anthropic;
+    const oldConfig = newProtocol === 'openai' ? DEFAULT_AI_CONFIG.anthropic : DEFAULT_AI_CONFIG.openai;
+
+    const updates = {
+      protocol: newConfig.protocol
+    };
+
+    // 如果当前 baseUrl 是旧协议的默认值，则更新为新协议的默认值
+    if (settings.aiChatConfig.baseUrl === oldConfig.baseUrl) {
+      updates.baseUrl = newConfig.baseUrl;
     }
+
+    // 如果当前 model 是旧协议的默认值，则更新为新协议的默认值
+    if (settings.aiChatConfig.model === oldConfig.model) {
+      updates.model = newConfig.model;
+    }
+
     onAIChatConfigChange(updates);
   };
 
@@ -667,7 +693,7 @@ const AISettings = ({ settings, onAIChatConfigChange, onEmbeddingConfigChange })
             className="setting-input"
             value={settings.aiChatConfig.baseUrl}
             onChange={(e) => onAIChatConfigChange({ baseUrl: e.target.value })}
-            placeholder={settings.aiChatConfig.protocol === 'openai' ? 'https://api.openai.com/v1' : 'https://api.anthropic.com'}
+            placeholder={settings.aiChatConfig.protocol === 'openai' ? DEFAULT_AI_CONFIG.openai.baseUrl : DEFAULT_AI_CONFIG.anthropic.baseUrl}
           />
         </SettingItem>
 
@@ -677,7 +703,7 @@ const AISettings = ({ settings, onAIChatConfigChange, onEmbeddingConfigChange })
             className="setting-input"
             value={settings.aiChatConfig.model}
             onChange={(e) => onAIChatConfigChange({ model: e.target.value })}
-            placeholder={settings.aiChatConfig.protocol === 'openai' ? "gpt-4o" : "claude-3-5-sonnet-20241022"}
+            placeholder={settings.aiChatConfig.protocol === 'openai' ? DEFAULT_AI_CONFIG.openai.model : DEFAULT_AI_CONFIG.anthropic.model}
           />
         </SettingItem>
 

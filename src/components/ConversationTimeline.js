@@ -10,6 +10,7 @@ import { copyMessage } from '../utils/copyManager';
 import { PlatformUtils, DateTimeUtils, TextUtils } from '../utils/fileParser';
 import { useI18n } from '../index.js';
 import { getRenameManager } from '../utils/renameManager';
+import StorageManager from '../utils/storageManager';
 // AI Chat 上下文桥接
 import { useContextBridge } from '../ai-chat';
 
@@ -423,7 +424,15 @@ const ConversationTimeline = ({
 
   const [selectedMessageIndex, setSelectedMessageIndex] = useState(null);
   const [activeTab, setActiveTab] = useState('content');
-  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
+  const [deviceMode, setDeviceMode] = useState(() => {
+    return StorageManager.get('device-mode', 'auto');
+  });
+  const [isDesktop, setIsDesktop] = useState(() => {
+    const mode = StorageManager.get('device-mode', 'auto');
+    if (mode === 'mobile') return false;
+    if (mode === 'desktop') return true;
+    return window.innerWidth >= 1024;
+  });
   const [branchFilters, setBranchFilters] = useState(new Map());
   const [showAllBranches, setShowAllBranches] = useState(branchState?.showAllBranches || false);
   const [copiedMessageIndex, setCopiedMessageIndex] = useState(null);
@@ -1133,18 +1142,50 @@ const ConversationTimeline = ({
     }
   }, [conversation, renameManager]);
 
+  // 监听窗口大小变化（仅在自动模式下）
   useEffect(() => {
     const handleResize = () => {
-      const newIsDesktop = window.innerWidth >= 1024;
-      setIsDesktop(newIsDesktop);
-      // 如果切换到桌面端,关闭移动端详情
-      if (newIsDesktop) {
-        setShowMobileDetail(false);
+      // 只有在自动模式下才响应窗口大小变化
+      if (deviceMode === 'auto') {
+        const newIsDesktop = window.innerWidth >= 1024;
+        setIsDesktop(newIsDesktop);
+        // 如果切换到桌面端,关闭移动端详情
+        if (newIsDesktop) {
+          setShowMobileDetail(false);
+        }
       }
     };
 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
+  }, [deviceMode]);
+
+  // 监听设备模式变化事件
+  useEffect(() => {
+    const handleDeviceModeChange = (event) => {
+      const newMode = event.detail.deviceMode;
+      setDeviceMode(newMode);
+
+      // 根据新模式更新 isDesktop 状态
+      if (newMode === 'mobile') {
+        setIsDesktop(false);
+        // 如果当前在显示移动端详情，保持显示
+      } else if (newMode === 'desktop') {
+        setIsDesktop(true);
+        // 切换到桌面端时关闭移动端详情
+        setShowMobileDetail(false);
+      } else {
+        // auto 模式：根据当前窗口大小判断
+        const newIsDesktop = window.innerWidth >= 1024;
+        setIsDesktop(newIsDesktop);
+        if (newIsDesktop) {
+          setShowMobileDetail(false);
+        }
+      }
+    };
+
+    window.addEventListener('deviceModeChange', handleDeviceModeChange);
+    return () => window.removeEventListener('deviceModeChange', handleDeviceModeChange);
   }, []);
 
   useEffect(() => {
@@ -1246,11 +1287,18 @@ const ConversationTimeline = ({
     if (!isDesktop) {
       // 移动端:显示移动端详情 modal
       setShowMobileDetail(true);
+
       // 添加 history 记录，支持后退关闭详情
+      // 记录详情视图状态，以便后退时能正确处理
       window.history.pushState(
-        { view: 'detail', msgIndex: messageIndex },
+        {
+          view: 'detail',
+          msgIndex: messageIndex,
+          parentView: 'timeline' // 记录父视图，方便后退时恢复
+        },
         ''
       );
+
       // 隐藏导航栏
       if (onHideNavbar) {
         onHideNavbar(true);
@@ -1259,33 +1307,36 @@ const ConversationTimeline = ({
   };
 
   const handleCloseMobileDetail = () => {
-    // 使用 window.history.back() 触发后退，状态更新由 popstate 处理
-    if (window.history.state && window.history.state.view === 'detail') {
-      window.history.back();
-    } else {
-      // 直接关闭（用于没有 history 记录的情况）
-      setShowMobileDetail(false);
-      if (onHideNavbar) {
-        onHideNavbar(false);
-      }
-    }
+    // 始终使用 window.history.back() 来关闭详情
+    // 这样可以保证历史记录的一致性
+    window.history.back();
   };
 
   // 监听 popstate 事件，处理移动端详情后退
   useEffect(() => {
     const handlePopState = (event) => {
-      // 如果当前显示移动端详情，且后退后不再是 detail 视图，则关闭详情
-      if (showMobileDetail && (!event.state || event.state.view !== 'detail')) {
-        setShowMobileDetail(false);
-        if (onHideNavbar) {
-          onHideNavbar(false);
-        }
+      const state = event.state;
+
+      // 只处理 detail 视图相关的后退
+      // 如果后退后不再是 detail 视图，则关闭移动端详情
+      if (!state || state.view !== 'detail') {
+        // 检查是否需要关闭详情（通过 ref 获取实时状态）
+        setShowMobileDetail(prev => {
+          if (prev) {
+            // 关闭详情时恢复导航栏
+            if (onHideNavbar) {
+              onHideNavbar(false);
+            }
+            return false;
+          }
+          return prev;
+        });
       }
     };
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [showMobileDetail, onHideNavbar]);
+  }, [onHideNavbar]);
 
   // 当移动端切换消息时，重置滚动位置到顶部
   useEffect(() => {
@@ -1704,6 +1755,7 @@ const ConversationTimeline = ({
     if (format === 'jsonl_chat') return 'assistant platform-jsonl_chat';
     if (format === 'chatgpt') return 'assistant platform-chatgpt';
     if (format === 'grok') return 'assistant platform-grok';
+    if (format === 'copilot') return 'assistant platform-copilot';
     if (format === 'gemini_notebooklm') {
       const platformLower = platform?.toLowerCase() || '';
       if (platformLower.includes('notebooklm')) return 'assistant platform-notebooklm';
@@ -1715,6 +1767,7 @@ const ConversationTimeline = ({
     if (platformLower.includes('jsonl')) return 'assistant platform-jsonl_chat';
     if (platformLower.includes('chatgpt')) return 'assistant platform-chatgpt';
     if (platformLower.includes('grok')) return 'assistant platform-grok';
+    if (platformLower.includes('copilot')) return 'assistant platform-copilot';
     if (platformLower.includes('gemini')) return 'assistant platform-gemini';
     if (platformLower.includes('ai studio') || platformLower.includes('aistudio')) return 'assistant platform-aistudio';
     if (platformLower.includes('notebooklm')) return 'assistant platform-notebooklm';

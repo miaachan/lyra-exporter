@@ -3,9 +3,10 @@
 // 支持两种 Embedding 提供者：Transformers.js（浏览器内）和 LM Studio（本地 API）
 
 import { pipeline } from '@xenova/transformers';
+import StorageManager from './storageManager';
 
-// localStorage 键名
-const STORAGE_KEY = 'lyra-semantic-search-config';
+// localStorage 键名 (StorageManager 会自动添加 lyra_ 前缀)
+const STORAGE_KEY = 'semantic-search-config';
 
 // 默认配置
 const DEFAULT_CONFIG = {
@@ -36,17 +37,9 @@ export class SemanticSearchManager {
    * @returns {Object}
    */
   loadConfig() {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        // 合并默认配置，确保所有字段都存在
-        return { ...DEFAULT_CONFIG, ...parsed };
-      }
-    } catch (e) {
-      console.warn('[SemanticSearch] Failed to load config from localStorage:', e);
-    }
-    return { ...DEFAULT_CONFIG };
+    const saved = StorageManager.get(STORAGE_KEY, {});
+    // 合并默认配置，确保所有字段都存在
+    return { ...DEFAULT_CONFIG, ...saved };
   }
 
   /**
@@ -55,11 +48,9 @@ export class SemanticSearchManager {
   saveConfig() {
     if (!this.config) return;
 
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.config));
+    const success = StorageManager.set(STORAGE_KEY, this.config);
+    if (success) {
       console.log('[SemanticSearch] Config saved to localStorage');
-    } catch (e) {
-      console.warn('[SemanticSearch] Failed to save config to localStorage:', e);
     }
   }
 
@@ -103,11 +94,9 @@ export class SemanticSearchManager {
     this.embedder = null;
     this.vectorIndex = [];
 
-    try {
-      localStorage.removeItem(STORAGE_KEY);
+    const success = StorageManager.remove(STORAGE_KEY);
+    if (success) {
       console.log('[SemanticSearch] Config cleared');
-    } catch (e) {
-      console.warn('[SemanticSearch] Failed to clear config from localStorage:', e);
     }
   }
 

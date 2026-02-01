@@ -1,6 +1,8 @@
 // utils/data/markManager.js
 // 标记系统管理（完成、重要、删除）
 
+import StorageManager from '../storageManager';
+
 const MARK_TYPES = {
   COMPLETED: 'completed',
   IMPORTANT: 'important',
@@ -25,27 +27,7 @@ export class MarkManager {
       };
     }
 
-    const storageKey = `marks_${this.fileUuid}`;
-    const savedData = localStorage.getItem(storageKey);
-    
-    if (savedData) {
-      try {
-        const parsed = JSON.parse(savedData);
-        return {
-          [MARK_TYPES.COMPLETED]: new Set(parsed.completed || []),
-          [MARK_TYPES.IMPORTANT]: new Set(parsed.important || []),
-          [MARK_TYPES.DELETED]: new Set(parsed.deleted || [])
-        };
-      } catch (error) {
-        console.error('Failed to load marks:', error);
-      }
-    }
-
-    return {
-      [MARK_TYPES.COMPLETED]: new Set(),
-      [MARK_TYPES.IMPORTANT]: new Set(),
-      [MARK_TYPES.DELETED]: new Set()
-    };
+    return StorageManager.getMarks(this.fileUuid);
   }
 
   /**
@@ -53,15 +35,8 @@ export class MarkManager {
    */
   saveMarks() {
     if (!this.fileUuid) return;
-    
-    const storageKey = `marks_${this.fileUuid}`;
-    const dataToSave = {
-      completed: Array.from(this.marks[MARK_TYPES.COMPLETED]),
-      important: Array.from(this.marks[MARK_TYPES.IMPORTANT]),
-      deleted: Array.from(this.marks[MARK_TYPES.DELETED])
-    };
-    
-    localStorage.setItem(storageKey, JSON.stringify(dataToSave));
+
+    StorageManager.setMarks(this.fileUuid, this.marks);
   }
 
   /**

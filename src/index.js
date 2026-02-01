@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
+import StorageManager from './utils/storageManager';
 
 // 导入语言包
 import enTranslations from './langs/en.json';
@@ -61,8 +62,8 @@ export const SUPPORTED_LANGUAGES = {
 // 默认语言
 export const DEFAULT_LANGUAGE = 'en';
 
-// localStorage 键名
-export const STORAGE_KEY = 'lyra_exporter_language';
+// localStorage 键名 (StorageManager 会自动添加 lyra_ 前缀)
+export const STORAGE_KEY = 'exporter_language';
 
 /**
  * 检测中文简繁体变体
@@ -214,15 +215,11 @@ export const loadLanguagePack = async (languageCode) => {
  * @returns {string} 语言代码
  */
 export const getSavedLanguage = () => {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved && SUPPORTED_LANGUAGES[saved]) {
-      return saved;
-    }
-  } catch (error) {
-    console.warn('Failed to read language from localStorage:', error);
+  const saved = StorageManager.get(STORAGE_KEY);
+  if (saved && SUPPORTED_LANGUAGES[saved]) {
+    return saved;
   }
-  
+
   // 如果没有保存的设置，使用浏览器检测
   return detectBrowserLanguage();
 };
@@ -232,11 +229,7 @@ export const getSavedLanguage = () => {
  * @param {string} languageCode - 语言代码
  */
 export const saveLanguage = (languageCode) => {
-  try {
-    localStorage.setItem(STORAGE_KEY, languageCode);
-  } catch (error) {
-    console.warn('Failed to save language to localStorage:', error);
-  }
+  StorageManager.set(STORAGE_KEY, languageCode);
 };
 
 // =============================================================================
@@ -247,11 +240,7 @@ export const saveLanguage = (languageCode) => {
  * 获取当前语言
  */
 export function getCurrentLanguage() {
-  try {
-    return localStorage.getItem(STORAGE_KEY) || 'en';
-  } catch {
-    return 'en';
-  }
+  return StorageManager.get(STORAGE_KEY, 'en');
 }
 
 /**

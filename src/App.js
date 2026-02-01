@@ -29,6 +29,7 @@ import { MarkManager, getAllMarksStats } from './utils/data/markManager';
 import { StarManager } from './utils/data/starManager';
 import { SortManager } from './utils/data/sortManager';
 import { SearchManager } from './utils/searchManager';
+import StorageManager from './utils/storageManager';
 
 import EnhancedSearchBox from './components/EnhancedSearchBox';
 import { getGlobalSearchManager } from './utils/globalSearchManager';
@@ -36,33 +37,26 @@ import { getRenameManager } from './utils/renameManager';
 import { useI18n } from './index.js';
 
 // AI Chat 浮窗组件
-import { FloatPanel, FloatPanelTrigger, initLyraAIChat } from './ai-chat';
-import './ai-chat/styles/index.css';
+import { FloatPanel, FloatPanelTrigger, initLyraAIChat, chatService } from './ai-chat';
+import './ai-chat/styles.css';
 
 // ==================== 通用工具类 ====================
 
 /**
- * Storage 工具类 - 封装 localStorage 操作
+ * Storage 工具类 - 使用 StorageManager
+ * 保持向后兼容的 API
  */
 export const StorageUtils = {
   getLocalStorage(key, defaultValue = null) {
-    try {
-      const item = localStorage.getItem(key);
-      return item ? JSON.parse(item) : defaultValue;
-    } catch (error) {
-      console.error(`Failed to get ${key} from localStorage:`, error);
-      return defaultValue;
-    }
+    // 移除 lyra_ 前缀（如果存在），因为 StorageManager 会自动添加
+    const cleanKey = key.startsWith('lyra_') ? key.substring(5) : key;
+    return StorageManager.get(cleanKey, defaultValue);
   },
 
   setLocalStorage(key, value) {
-    try {
-      localStorage.setItem(key, JSON.stringify(value));
-      return true;
-    } catch (error) {
-      console.error(`Failed to set ${key} in localStorage:`, error);
-      return false;
-    }
+    // 移除 lyra_ 前缀（如果存在），因为 StorageManager 会自动添加
+    const cleanKey = key.startsWith('lyra_') ? key.substring(5) : key;
+    return StorageManager.set(cleanKey, value);
   }
 };
 
@@ -719,7 +713,15 @@ function App() {
   const [selectedConversationUuid, setSelectedConversationUuid] = useState(null);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [hideNavbar, setHideNavbar] = useState(false); // 新增：控制导航栏显示
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024); // 移动端检测（统一断点：< 1024px）
+  const [deviceMode, setDeviceMode] = useState(() =>
+    StorageUtils.getLocalStorage('device-mode', 'auto')
+  ); // 设备模式：'auto' | 'mobile' | 'desktop'
+  const [isMobile, setIsMobile] = useState(() => {
+    const mode = StorageUtils.getLocalStorage('device-mode', 'auto');
+    if (mode === 'mobile') return true;
+    if (mode === 'desktop') return false;
+    return window.innerWidth < 1024;
+  }); // 移动端检测（统一断点：< 1024px）
   const [showMobileDetail, setShowMobileDetail] = useState(false); // 移动端详情显示状态
   const [operatedFiles, setOperatedFiles] = useState(new Set());
   const [scrollPositions, setScrollPositions] = useState({});
@@ -762,7 +764,6 @@ function App() {
   const markManagerRef = useRef(null);
   const starManagerRef = useRef(null);
   const sortManagerRef = useRef(null);
-  const searchManagerRef = useRef(null);
 
   // ==================== 管理器初始化 ====================
 
@@ -793,12 +794,6 @@ function App() {
     }
   }, [currentFileUuid]);
 
-  useEffect(() => {
-    if (!searchManagerRef.current) {
-      searchManagerRef.current = new SearchManager();
-    }
-  }, []);
-
   // 集中化构建全局搜索索引
   useEffect(() => {
     if (files.length > 0) {
@@ -823,13 +818,37 @@ function App() {
   }, [files, processedData, currentFileIndex]);
 
 
-  // 监听窗口大小变化，更新移动端状态
+  // 监听窗口大小变化，根据设备模式更新移动端状态
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth < 1024);
+      // 只有在自动模式下才响应窗口大小变化
+      if (deviceMode === 'auto') {
+        setIsMobile(window.innerWidth < 1024);
+      }
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
+  }, [deviceMode]);
+
+  // 监听设备模式变化事件
+  useEffect(() => {
+    const handleDeviceModeChange = (event) => {
+      const newMode = event.detail.deviceMode;
+      setDeviceMode(newMode);
+
+      // 根据新模式更新 isMobile 状态
+      if (newMode === 'mobile') {
+        setIsMobile(true);
+      } else if (newMode === 'desktop') {
+        setIsMobile(false);
+      } else {
+        // auto 模式：根据当前窗口大小判断
+        setIsMobile(window.innerWidth < 1024);
+      }
+    };
+
+    window.addEventListener('deviceModeChange', handleDeviceModeChange);
+    return () => window.removeEventListener('deviceModeChange', handleDeviceModeChange);
   }, []);
 
   // ==================== History API 导航管理 ====================
@@ -839,9 +858,26 @@ function App() {
     scrollPositionsRef.current = scrollPositions;
   }, [scrollPositions]);
 
+  // 初始化 history 状态
+  useEffect(() => {
+    // 只在首次加载时设置初始状态
+    if (!window.history.state) {
+      window.history.replaceState(
+        { view: 'conversations', initial: true },
+        ''
+      );
+    }
+  }, []);
+
   useEffect(() => {
     const handlePopState = (event) => {
       const state = event.state;
+
+      // 忽略 detail 视图的状态变化（由 ConversationTimeline 处理）
+      if (state && state.view === 'detail') {
+        return;
+      }
+
       if (!state || state.view === 'conversations') {
         setViewMode('conversations');
         setSelectedConversationUuid(null);
@@ -931,16 +967,6 @@ function App() {
     return timelineMessages;
   }, [timelineMessages, viewMode, sortVersion]);
 
-  // 搜索处理
-  const handleSearch = useCallback((query) => {
-    setSearchQuery(query);
-    if (!searchManagerRef.current) return;
-    const searchTarget = viewMode === 'conversations' ? allCards : sortedMessages;
-    searchManagerRef.current.searchWithDebounce(query, searchTarget, (result) => {
-      setSearchResults(result);
-    });
-  }, [viewMode, allCards, sortedMessages]);
-
   const displayedItems = useMemo(() => {
     if (!searchQuery) {
       return viewMode === 'conversations' ? allCards : sortedMessages;
@@ -976,8 +1002,17 @@ function App() {
 
   // ==================== AI Chat 集成 ====================
 
-  // 初始化 AI Chat
+  // 初始化 AI Chat - 从 localStorage 加载配置
   useEffect(() => {
+    // 从 localStorage 读取配置（由 SettingsManager 管理）
+    const config = StorageManager.get('ai-chat-config');
+    if (config) {
+      // 配置 chatService
+      chatService.configure(config);
+      console.log('[App] AI Chat configured from localStorage');
+    }
+
+    // 初始化 AI Chat（注册内置 MCP 等）
     initLyraAIChat();
   }, []);
 
@@ -1303,8 +1338,8 @@ function App() {
           setOperatedFiles(prev => {
             const newSet = new Set(prev);
             newSet.delete(currentFileUuid);
-            localStorage.removeItem(`marks_${currentFileUuid}`);
-            localStorage.removeItem(`message_order_${currentFileUuid}`);
+            StorageManager.remove(`marks_${currentFileUuid}`);
+            StorageManager.remove(`message_order_${currentFileUuid}`);
             return newSet;
           });
         }
@@ -1318,15 +1353,12 @@ function App() {
       return;
     }
 
-    const keysToRemove = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && (key.startsWith('marks_') || key.startsWith('message_order_'))) {
-        keysToRemove.push(key);
-      }
-    }
+    const allKeys = StorageManager.getAllKeys();
+    const keysToRemove = allKeys.filter(key =>
+      key.startsWith('marks_') || key.startsWith('message_order_')
+    );
 
-    keysToRemove.forEach(key => localStorage.removeItem(key));
+    keysToRemove.forEach(key => StorageManager.remove(key));
     setOperatedFiles(new Set());
 
     if (markManagerRef.current) {
@@ -1397,7 +1429,7 @@ function App() {
         const marksKey = `marks_${fileUuid}`;
         const sortKey = `message_order_${fileUuid}`;
 
-        if (localStorage.getItem(marksKey) || localStorage.getItem(sortKey)) {
+        if (StorageManager.get(marksKey) || StorageManager.get(sortKey)) {
           operatedSet.add(fileUuid);
         }
 
@@ -1408,7 +1440,7 @@ function App() {
             const convMarksKey = `marks_${convUuid}`;
             const convSortKey = `message_order_${convUuid}`;
 
-            if (localStorage.getItem(convMarksKey) || localStorage.getItem(convSortKey)) {
+            if (StorageManager.get(convMarksKey) || StorageManager.get(convSortKey)) {
               operatedSet.add(convUuid);
             }
           });
@@ -1683,7 +1715,7 @@ function App() {
           {/* 悬浮导出按钮 - 移动端查看消息详情时隐藏 */}
           <FloatingActionButton
             onClick={() => {
-              const lastExportFormat = localStorage.getItem('lyra_last_export_format') || 'exportMarkdown';
+              const lastExportFormat = StorageManager.get('last_export_format', 'exportMarkdown');
               setActionPanelSection(lastExportFormat);
               setShowActionPanel(true);
             }}

@@ -96,6 +96,70 @@ const MessageDetail = ({
       .trim();
   };
 
+  // 修复列表项中的内联 markdown 未被解析的问题
+  // 当列表项包含多行或其他复杂内容时，ReactMarkdown 可能不解析内联格式
+  // 解决方案：手动将内联 markdown 转换为 HTML 标签
+  const fixListItemMarkdown = (text) => {
+    if (!text) return '';
+
+    // 先在列表项和后续非列表内容之间添加空行分隔
+    let fixed = text.replace(
+      /(^|\n)([-*+]|\d+\.)\s+(.+?)(\n)(?![-*+\s]|\d+\.|\n)/gm,
+      (_match, prefix, marker, content, newline) => {
+        return `${prefix}${marker} ${content}${newline}${newline}`;
+      }
+    );
+
+    // 手动转换列表项中的内联 markdown 为 HTML
+    // 只处理列表行（以 -, *, +, 或数字. 开头）
+    fixed = fixed.replace(
+      /(^|\n)([-*+]|\d+\.)\s+(.+?)($|\n)/gm,
+      (_match, prefix, marker, content, suffix) => {
+        // 转换内联格式
+        let html = content
+          // 粗体：**text** 或 __text__
+          .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+          .replace(/__(.+?)__/g, '<strong>$1</strong>')
+          // 斜体：*text* 或 _text_ (但不匹配 ** 和 __)
+          .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>')
+          .replace(/(?<!_)_(?!_)(.+?)(?<!_)_(?!_)/g, '<em>$1</em>')
+          // 行内代码：`text`
+          .replace(/`([^`]+?)`/g, '<code>$1</code>');
+
+        return `${prefix}${marker} ${html}${suffix}`;
+      }
+    );
+
+    return fixed;
+  };
+
+  // 修复不成对的 $$ 符号，避免 remark-math 解析崩溃
+  const fixMathDelimiters = (text) => {
+    if (!text) return '';
+
+    try {
+      // 移除所有 $$ 块级公式标记，将其转换为行内公式 $
+      // 这是因为 remark-math 对 $$ 的解析容易出错
+      let result = text.replace(/\$\$([^$]*)\$\$/g, (match, content) => {
+        // 如果内容为空或只有空白，直接移除
+        if (!content.trim()) return '';
+        // 转换为行内公式
+        return `$${content.trim()}$`;
+      });
+
+      // 处理剩余的不成对 $$
+      const remaining = result.match(/\$\$/g);
+      if (remaining && remaining.length % 2 !== 0) {
+        result = result.replace(/\$\$/g, '\\$\\$');
+      }
+
+      return result;
+    } catch (e) {
+      console.error('fixMathDelimiters error:', e);
+      return text;
+    }
+  };
+
   const getAvailableTabs = () => {
     const baseTabs = [{ id: 'content', label: t('messageDetail.tabs.content') }];
     
@@ -164,13 +228,43 @@ const MessageDetail = ({
       }
       return <p {...props}>{children}</p>;
     },
-    
+
     li: ({ children, ...props }) => {
-      if (typeof children === 'string' && searchQuery) {
-        const highlightedText = highlightSearchText(children, searchQuery);
-        return <li {...props} dangerouslySetInnerHTML={{ __html: highlightedText }} />;
+      // 如果 children 是纯字符串且包含未解析的 markdown（如 **text**），手动解析它
+      if (typeof children === 'string') {
+        // 处理搜索高亮
+        if (searchQuery) {
+          const highlightedText = highlightSearchText(children, searchQuery);
+          return <li {...props} dangerouslySetInnerHTML={{ __html: highlightedText }} />;
+        }
+
+        // 检测是否包含未解析的 markdown 格式
+        if (children.includes('**') || children.includes('*') || children.includes('`')) {
+          // 手动解析内联 markdown
+          let html = children
+            // 粗体：**text** 或 __text__
+            .replace(/\*\*(.+?)\*\*/g, '<strong style="font-weight: bold; color: var(--text-primary);">$1</strong>')
+            .replace(/__(.+?)__/g, '<strong style="font-weight: bold; color: var(--text-primary);">$1</strong>')
+            // 斜体：*text* 或 _text_ (但不匹配 ** 和 __)
+            .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em style="font-style: italic; color: var(--text-primary);">$1</em>')
+            .replace(/(?<!_)_(?!_)(.+?)(?<!_)_(?!_)/g, '<em style="font-style: italic; color: var(--text-primary);">$1</em>')
+            // 行内代码：`text`
+            .replace(/`(.+?)`/g, '<code style="background: var(--bg-tertiary); color: var(--accent-danger); padding: 2px 4px; border-radius: 3px; font-size: 85%;">$1</code>')
+            // 换行符转为 <br>
+            .replace(/\n/g, '<br>');
+
+          return <li {...props} dangerouslySetInnerHTML={{ __html: html }} />;
+        }
       }
       return <li {...props}>{children}</li>;
+    },
+
+    strong: ({ children, ...props }) => {
+      return <strong {...props} style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{children}</strong>;
+    },
+
+    em: ({ children, ...props }) => {
+      return <em {...props} style={{ fontStyle: 'italic', color: 'var(--text-primary)' }}>{children}</em>;
     },
     
     h1: ({ children, ...props }) => {
@@ -257,8 +351,36 @@ const MessageDetail = ({
       </a>
     ),
 
+    ul: ({ children, ...props }) => (
+      <ul {...props} style={{
+        paddingLeft: '20px',
+        marginBottom: '12px',
+        marginTop: '8px',
+        listStyleType: 'disc',
+        color: 'var(--text-primary)'
+      }}>{children}</ul>
+    ),
+
+    ol: ({ children, ...props }) => (
+      <ol {...props} style={{
+        paddingLeft: '20px',
+        marginBottom: '12px',
+        marginTop: '8px',
+        listStyleType: 'decimal',
+        color: 'var(--text-primary)'
+      }}>{children}</ol>
+    ),
+
     blockquote: ({ children, ...props }) => (
-      <blockquote {...props}>{children}</blockquote>
+      <blockquote {...props} style={{
+        borderLeft: '4px solid var(--accent-primary)',
+        paddingLeft: '16px',
+        marginLeft: '0',
+        marginTop: '12px',
+        marginBottom: '12px',
+        color: 'var(--text-secondary)',
+        fontStyle: 'italic'
+      }}>{children}</blockquote>
     ),
 
     table: ({ children, ...props }) => (
@@ -669,7 +791,7 @@ const MessageDetail = ({
                   rehypePlugins={[rehypeKatex, rehypeRaw]}
                   components={MarkdownComponents}
                 >
-                  {filterImageReferences(currentMessage.display_text || '')}
+                  {fixMathDelimiters(fixListItemMarkdown(filterImageReferences(currentMessage.display_text || '')))}
                 </ReactMarkdown>
               </MarkdownErrorBoundary>
             </div>
@@ -696,7 +818,7 @@ const MessageDetail = ({
                     rehypePlugins={[rehypeKatex, rehypeRaw]}
                     components={MarkdownComponents}
                   >
-                    {filterImageReferences(currentMessage.thinking)}
+                    {fixMathDelimiters(fixListItemMarkdown(filterImageReferences(currentMessage.thinking)))}
                   </ReactMarkdown>
                 </MarkdownErrorBoundary>
               </div>
@@ -745,7 +867,7 @@ const MessageDetail = ({
                   rehypePlugins={[rehypeKatex, rehypeRaw]}
                   components={MarkdownComponents}
                 >
-                  {currentMessage.canvas}
+                  {fixMathDelimiters(currentMessage.canvas)}
                 </ReactMarkdown>
               </MarkdownErrorBoundary>
             ) : (

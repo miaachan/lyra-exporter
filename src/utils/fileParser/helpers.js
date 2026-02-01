@@ -1,6 +1,8 @@
 // helpers.js
 // 共用工具函数、常量、MessageBuilder 类
 
+import StorageManager from '../storageManager';
+
 // ==================== 配置常量 ====================
 export const PARSER_CONFIG = {
   ROOT_UUID: '00000000-0000-4000-8000-000000000000',
@@ -63,22 +65,18 @@ class LocaleCache {
   }
 
   _initLocale() {
-    try {
-      const saved = localStorage.getItem('lyra_exporter_language') || 'en';
-      if (saved === 'zh') {
-        const browserLang = navigator.language || navigator.userLanguage || '';
-        const lowerLang = browserLang.toLowerCase();
-        if (lowerLang.includes('tw') || lowerLang.includes('hk') ||
-            lowerLang.includes('mo') || lowerLang.includes('hant')) {
-          this._locale = 'zh-TW';
-        } else {
-          this._locale = 'zh-CN';
-        }
+    const saved = StorageManager.get('exporter_language', 'en');
+    if (saved === 'zh') {
+      const browserLang = navigator.language || navigator.userLanguage || '';
+      const lowerLang = browserLang.toLowerCase();
+      if (lowerLang.includes('tw') || lowerLang.includes('hk') ||
+          lowerLang.includes('mo') || lowerLang.includes('hant')) {
+        this._locale = 'zh-TW';
       } else {
-        this._locale = saved;
+        this._locale = 'zh-CN';
       }
-    } catch {
-      this._locale = 'en';
+    } else {
+      this._locale = saved;
     }
   }
 
@@ -229,6 +227,8 @@ export const FileUtils = {
         return isChinese ? 'SillyTavern' : 'JSONL Chat';
       case 'chatgpt':
         return 'ChatGPT';
+      case 'copilot':
+        return 'Copilot';
       default:
         return isChinese ? '未知格式' : 'Unknown Format';
     }

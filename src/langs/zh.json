@@ -296,6 +296,13 @@
       "language": {
         "label": "语言",
         "description": "选择界面显示语言(设置完成后需刷新网页)"
+      },
+      "deviceMode": {
+        "label": "设备模式",
+        "description": "选择界面布局模式",
+        "auto": "自动识别",
+        "mobile": "固定移动端",
+        "desktop": "固定桌面端"
       }
     },
     "copyOptions": {
@@ -484,6 +491,31 @@
         "description": "已加载的 Embedding 模型名称"
       },
       "info": "请确保本地 LM Studio 已启动并加载 Embedding 模型。推荐使用 qwen3-embedding 等轻量模型。"
+    },
+    "aiChatContext": {
+      "title": "AI 对话上下文配置",
+      "description": "配置 AI 对话浮窗如何追踪和处理浏览中的消息上下文",
+      "autoTrack": {
+        "label": "自动追踪",
+        "description": "浏览消息时自动添加到 AI 对话上下文"
+      },
+      "maxContentLength": {
+        "label": "消息截取长度",
+        "description": "每条消息最多保留的字符数（0 = 不限制）"
+      },
+      "includeThinking": {
+        "label": "包含思考过程",
+        "description": "将 Claude 的思考过程（thinking）添加到上下文"
+      },
+      "includeArtifacts": {
+        "label": "包含 Artifacts",
+        "description": "将 Artifacts（代码、文档）添加到上下文"
+      },
+      "includeAttachments": {
+        "label": "包含附件",
+        "description": "将附件信息添加到上下文"
+      },
+      "info": "这些设置控制 AI 对话浮窗如何处理消息上下文。调整截取长度可以在上下文完整性和 Token 消耗之间取得平衡。"
     },
     "mcp": {
       "title": "MCP 服务器管理",
@@ -917,7 +949,13 @@
       "browsingMessages": "浏览的消息",
       "browsingPath": "浏览轨迹",
       "summaries": "生成的总结",
-      "remove": "移除"
+      "remove": "移除",
+      "config": "上下文配置",
+      "maxContentLength": "消息截取长度",
+      "maxContentLengthDesc": "每条消息最多保留的字符数（0 = 不限制）",
+      "systemPrompt": "自定义系统提示词",
+      "systemPromptDesc": "留空使用默认提示词。可用占位符：{contextSummary}、{pathSummary}",
+      "systemPromptPlaceholder": "留空使用默认系统提示词..."
     },
     "manage": {
       "tabs": {

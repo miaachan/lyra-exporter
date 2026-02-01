@@ -1,0 +1,6 @@
+{
+  "enabledMcpjsonServers": [
+    "sequentialthinking_local"
+  ],
+  "enableAllProjectMcpServers": true
+}

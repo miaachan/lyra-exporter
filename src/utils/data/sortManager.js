@@ -1,6 +1,8 @@
 // utils/data/sortManager.js
 // 消息排序管理 - 修复文件切换时的数据混乱问题
 
+import StorageManager from '../storageManager';
+
 export class SortManager {
   constructor(messages, fileUuid) {
     this.originalMessages = [...messages]; // 深拷贝原始消息，避免引用问题
@@ -14,16 +16,8 @@ export class SortManager {
    */
   loadCustomOrder() {
     if (!this.fileUuid) return {};
-    
-    const savedOrder = localStorage.getItem(`message_order_${this.fileUuid}`);
-    if (savedOrder) {
-      try {
-        return JSON.parse(savedOrder);
-      } catch (e) {
-        console.error('Failed to load message order:', e);
-      }
-    }
-    return {};
+
+    return StorageManager.get(`message_order_${this.fileUuid}`, {});
   }
 
   /**
@@ -31,7 +25,7 @@ export class SortManager {
    */
   saveOrder() {
     if (!this.fileUuid) return;
-    localStorage.setItem(`message_order_${this.fileUuid}`, JSON.stringify(this.customOrder));
+    StorageManager.set(`message_order_${this.fileUuid}`, this.customOrder);
   }
 
   /**
@@ -98,7 +92,7 @@ export class SortManager {
     this.customOrder = {};
     this.sortedMessages = [...this.originalMessages];
     if (this.fileUuid) {
-      localStorage.removeItem(`message_order_${this.fileUuid}`);
+      StorageManager.remove(`message_order_${this.fileUuid}`);
     }
     return this.sortedMessages;
   }
@@ -190,18 +184,13 @@ export class SortManager {
    * 清理无效的排序数据
    */
   static cleanupInvalidOrders() {
-    const keys = Object.keys(localStorage);
+    const keys = StorageManager.getAllKeys();
     keys.forEach(key => {
       if (key.startsWith('message_order_')) {
-        try {
-          const data = JSON.parse(localStorage.getItem(key));
-          if (!data || typeof data !== 'object') {
-            localStorage.removeItem(key);
-            console.log(`Removed invalid order: ${key}`);
-          }
-        } catch {
-          localStorage.removeItem(key);
-          console.log(`Removed corrupted order: ${key}`);
+        const data = StorageManager.get(key);
+        if (!data || typeof data !== 'object') {
+          StorageManager.remove(key);
+          console.log(`Removed invalid order: ${key}`);
         }
       }
     });

@@ -8,6 +8,7 @@ import { getAllMarksStats } from '../utils/data/markManager';
 import { generateFileCardUuid, generateConversationCardUuid } from '../utils/data/uuidManager';
 import { DateTimeUtils } from '../utils/fileParser';
 import { useI18n } from '../index.js';
+import StorageManager from '../utils/storageManager';
 
 /**
  * 左侧导航项配置
@@ -134,7 +135,7 @@ const ActionPanel = ({
                   setActiveSection(item.id);
                   // 记住上次使用的导出格式
                   if (item.id.startsWith('export')) {
-                    localStorage.setItem('lyra_last_export_format', item.id);
+                    StorageManager.set('last_export_format', item.id);
                   }
                 }}
               >
@@ -197,21 +198,16 @@ const ActionPanel = ({
 /**
  * 搜索历史管理
  */
-const SEARCH_HISTORY_KEY = 'lyra_search_history';
+const SEARCH_HISTORY_KEY = 'search_history';
 const MAX_HISTORY_SIZE = 20;
 
 const getSearchHistory = () => {
-  try {
-    const stored = localStorage.getItem(SEARCH_HISTORY_KEY);
-    return stored ? JSON.parse(stored) : [];
-  } catch (e) {
-    return [];
-  }
+  return StorageManager.get(SEARCH_HISTORY_KEY, []);
 };
 
 const saveSearchHistory = (history) => {
   try {
-    localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(history.slice(0, MAX_HISTORY_SIZE)));
+    StorageManager.set(SEARCH_HISTORY_KEY, history.slice(0, MAX_HISTORY_SIZE));
   } catch (e) {
     console.error('[SearchHistory] 保存失败:', e);
   }
@@ -237,20 +233,16 @@ const removeFromSearchHistory = (query) => {
 /**
  * 展开状态管理
  */
-const EXPANDED_STATE_KEY = 'lyra_search_expanded';
+const EXPANDED_STATE_KEY = 'search_expanded';
 
 const getExpandedState = () => {
-  try {
-    const stored = localStorage.getItem(EXPANDED_STATE_KEY);
-    return stored ? new Set(JSON.parse(stored)) : new Set();
-  } catch (e) {
-    return new Set();
-  }
+  const stored = StorageManager.get(EXPANDED_STATE_KEY, []);
+  return new Set(stored);
 };
 
 const saveExpandedState = (expandedSet) => {
   try {
-    localStorage.setItem(EXPANDED_STATE_KEY, JSON.stringify([...expandedSet]));
+    StorageManager.set(EXPANDED_STATE_KEY, [...expandedSet]);
   } catch (e) {
     console.error('[ExpandedState] 保存失败:', e);
   }
@@ -346,7 +338,7 @@ const GlobalSearchSection = ({ onNavigateToMessage, onClose, initialQuery = '' }
 
   // 从 localStorage 读取搜索选项
   const getSearchOptions = () => {
-    const stored = localStorage.getItem('search-options');
+    const stored = StorageManager.get('search-options');
     if (stored) {
       return JSON.parse(stored);
     }
@@ -653,20 +645,11 @@ const SemanticSearchSection = ({
 
   // Embedding 配置
   const [embeddingConfig, setEmbeddingConfig] = useState(() => {
-    try {
-      const saved = localStorage.getItem('semantic-embedding-config');
-      return saved ? JSON.parse(saved) : {
-        provider: 'lmstudio',
-        lmStudioUrl: 'http://localhost:1234',
-        modelName: 'qwen3-embedding'
-      };
-    } catch (e) {
-      return {
-        provider: 'lmstudio',
-        lmStudioUrl: 'http://localhost:1234',
-        modelName: 'qwen3-embedding'
-      };
-    }
+    return StorageManager.get('semantic-embedding-config', {
+      provider: 'lmstudio',
+      lmStudioUrl: 'http://localhost:1234',
+      modelName: 'qwen3-embedding'
+    });
   });
 
   const inputRef = useRef(null);

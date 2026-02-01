@@ -10,7 +10,6 @@
 /* 2. 全局重置和基础样式 */
 @import './reset.css';
 @import './mobile-modal.css';
-@import './nodeLocator.css';
 
 /* 3. 通用组件（按钮、模态框、输入框等） */
 @import './components.css';
@@ -32,12 +31,6 @@
 
 /* 8. 筛选器和设置面板样式 */
 @import './filters-settings.css';
-
-/* 8.1. 语义搜索面板样式 */
-@import './semantic-search.css';
-
-/* 8.2. 移动端全局搜索面板样式 */
-@import './mobile-global-search.css';
 
 /* 9. 响应式设计 - 必须最后加载以覆盖前面的样式 */
 @import './responsive.css';
