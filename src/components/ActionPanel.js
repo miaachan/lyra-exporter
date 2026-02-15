@@ -1053,6 +1053,29 @@ const ExportSection = ({
         </div>
       )}
 
+      {/* Markdown 选项 */}
+      {exportFormat === 'markdown' && (
+        <div className="export-group">
+          <h3>{t('app.export.markdown.title')}</h3>
+          <div className="export-options-list">
+            <label className="export-checkbox-option">
+              <input
+                type="checkbox"
+                checked={!!exportOptions.includeImageFiles}
+                onChange={(e) => setExportOptions({
+                  ...exportOptions,
+                  includeImageFiles: e.target.checked
+                })}
+              />
+              <div className="option-content">
+                <span className="option-title">{t('app.export.markdown.includeImageFiles')}</span>
+                <span className="option-desc">{t('app.export.markdown.includeImageFilesDesc')}</span>
+              </div>
+            </label>
+          </div>
+        </div>
+      )}
+
       {/* 导出范围选择 */}
       <div className="export-group">
         <h3>{t('app.export.scope.title')}</h3>
@@ -1217,7 +1240,8 @@ const ExportSection = ({
                 exportOptions.includeThinking && t('settings.exportContent.thinking.label'),
                 exportOptions.includeArtifacts && t('settings.exportContent.artifacts.label'),
                 exportOptions.includeTools && t('settings.exportContent.tools.label'),
-                exportOptions.includeCitations && t('settings.exportContent.citations.label')
+                exportOptions.includeCitations && t('settings.exportContent.citations.label'),
+                exportOptions.includeImageFiles && t('app.export.markdown.includeImageFiles')
               ].filter(Boolean).join(' · ') || t('app.export.stats.basicOnly')
             })}
           </span>

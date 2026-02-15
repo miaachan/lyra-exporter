@@ -250,10 +250,10 @@ git clone https://github.com/Yalums/lyra-exporter.git
 cd lyra-exporter
 
 # Install dependencies
-npm install
+pnpm install
 
 # Start development server
-npm start
+pnpm start
 ```
 
 ### Usage Steps

@@ -190,6 +190,11 @@
         "pdf": "PDF 文档",
         "pdfDesc": "导出为可搜索的纯文本 PDF（图片无法显示）"
       },
+      "markdown": {
+        "title": "Markdown 选项",
+        "includeImageFiles": "包含内嵌图片（ZIP）",
+        "includeImageFilesDesc": "将 Markdown 与内嵌图片一起打包为 ZIP，并在文档中使用本地图片引用"
+      },
       "screenshot": {
         "title": "截图设置",
         "heightLimit": "单张高度限制",

@@ -19,6 +19,7 @@ import {
   toExcelColumn,
   toRoman
 } from './formatHelpers';
+import { exportMarkdownWithImagesZip } from './export/markdownImageZipExporter';
 import { t } from '../index.js';
 
 /**
@@ -31,6 +32,7 @@ export const ExportConfig = {
     includeArtifacts: true,
     includeCitations: true,
     includeAttachments: true,
+    includeImageFiles: false,
     includeTimestamps: false,
     exportObsidianMetadata: false,
     exportMarkedOnly: false,
@@ -233,6 +235,11 @@ export class MarkdownGenerator {
   // 正文
   if (msg.display_text) {
     lines.push(msg.display_text, '');
+  }
+
+    const imageRefs = this.getImageRefs(msg, index);
+    if (imageRefs.length > 0) {
+      lines.push(...imageRefs, '');
     }
 
     // 附件(仅对人类消息,且配置开启时)
@@ -281,6 +288,23 @@ export class MarkdownGenerator {
    */
   formatAttachments(attachments) {
     return formatAttachmentsHelper(attachments, this.config);
+  }
+
+  getImageRefs(msg, index) {
+    const refsByMessageKey = this.config.imageRefsByMessageKey || {};
+    const lookupKeys = [
+      msg?.index,
+      msg?.uuid,
+      index
+    ].filter(key => key !== undefined && key !== null).map(String);
+
+    for (const key of lookupKeys) {
+      if (Array.isArray(refsByMessageKey[key]) && refsByMessageKey[key].length > 0) {
+        return refsByMessageKey[key];
+      }
+    }
+
+    return [];
   }
 
 
@@ -656,7 +680,8 @@ export async function handleExport({
       humanLabel: 'Human',
       assistantLabel: 'Assistant',
       includeHeaderPrefix: true,
-      headerLevel: 2
+      headerLevel: 2,
+      includeImageFiles: false
     });
 
     let dataToExport = [];
@@ -816,8 +841,8 @@ export async function handleExport({
       data: dataToExport.length === 1 ? dataToExport[0] : null,
       dataList: dataToExport,
       config: {
-        ...exportOptions,
         ...exportFormatConfig,
+        ...exportOptions,
         marks: markManagerRef?.current ? markManagerRef.current.getMarks() : {
           completed: new Set(),
           important: new Set(),
@@ -843,12 +868,47 @@ export async function exportData(options) {
 
   try {
     switch (scope) {
-      case 'current':
+      case 'current': {
         if (!data) throw new Error(gt('errors.noDataToExport'));
+        if (config.includeImageFiles) {
+          const conversationUuid = config.conversationUuid || data._exportConfig?.conversationUuid;
+          const markdownFileName = FileExporter.generateFileName(data, 'single', conversationUuid);
+          return exportMarkdownWithImagesZip({
+            scope: 'current',
+            data,
+            config,
+            singleMarkdownFileName: markdownFileName,
+            createMarkdown: (item, itemConfig) => {
+              const generator = new MarkdownGenerator({
+                ...itemConfig,
+                conversationUuid: conversationUuid || item._exportConfig?.conversationUuid
+              });
+              return generator.generate(item);
+            }
+          });
+        }
         return FileExporter.exportSingleFile(data, config);
+      }
 
       case 'multiple':
         if (dataList.length === 0) throw new Error(gt('errors.noDataToExport'));
+        if (config.includeImageFiles) {
+          const markdownFileName = FileExporter.generateFileName(null, 'multiple');
+          return exportMarkdownWithImagesZip({
+            scope: 'multiple',
+            dataList,
+            config,
+            multipleMarkdownFileName: markdownFileName,
+            createMarkdown: (item, itemConfig) => {
+              const generator = new MarkdownGenerator({
+                ...itemConfig,
+                marks: { completed: new Set(), important: new Set(), deleted: new Set() },
+                conversationUuid: item._exportConfig?.conversationUuid
+              });
+              return generator.generate(item);
+            }
+          });
+        }
         return FileExporter.exportMultipleFiles(dataList, config);
 
       default:

@@ -40,7 +40,8 @@ const ExportConfigManager = {
       includeCanvas: true,
       includeTools: false,
       includeCitations: false,
-      includeAttachments: true
+      includeAttachments: true,
+      includeImageFiles: false
     });
   },
 
@@ -103,7 +104,8 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
       includeCanvas: true,
       includeTools: false,
       includeCitations: false,
-      includeAttachments: true
+      includeAttachments: true,
+      includeImageFiles: false
     },
     aiChatConfig: {
       ...DEFAULT_AI_CONFIG.anthropic,
@@ -226,7 +228,7 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
     ExportConfigManager.saveConfig(newOptions);
     setSettings(prev => ({ ...prev, exportOptions: newOptions }));
 
-    if (setExportOptions && ['includeTimestamps', 'includeThinking', 'includeArtifacts', 'includeCanvas', 'includeTools', 'includeCitations', 'includeAttachments'].includes(option)) {
+    if (setExportOptions && ['includeTimestamps', 'includeThinking', 'includeArtifacts', 'includeCanvas', 'includeTools', 'includeCitations', 'includeAttachments', 'includeImageFiles'].includes(option)) {
       setExportOptions(prev => ({ ...prev, [option]: value }));
     }
   };

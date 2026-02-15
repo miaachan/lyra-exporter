@@ -30,6 +30,7 @@ import { StarManager } from './utils/data/starManager';
 import { SortManager } from './utils/data/sortManager';
 import { SearchManager } from './utils/searchManager';
 import StorageManager from './utils/storageManager';
+import PersistentFileStore from './utils/persistentFileStore';
 
 import EnhancedSearchBox from './components/EnhancedSearchBox';
 import { getGlobalSearchManager } from './utils/globalSearchManager';
@@ -70,6 +71,7 @@ export const ValidationUtils = {
       'https://claude.easychat.top',
       'https://pro.easychat.top',
       'https://chatgpt.com',
+      'https://chat.openai.com',
       'https://grok.com',
       'https://x.com',
       'https://gemini.google.com',
@@ -279,10 +281,12 @@ const useFileManager = () => {
   const [currentFileIndex, setCurrentFileIndex] = useState(0);
   const [processedData, setProcessedData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isHydratingPersistedFiles, setIsHydratingPersistedFiles] = useState(true);
   const [error, setError] = useState(null);
   const [showTypeConflictModal, setShowTypeConflictModal] = useState(false);
   const [pendingFiles, setPendingFiles] = useState([]);
   const [fileMetadata, setFileMetadata] = useState({});
+  const hasHydratedPersistedFilesRef = useRef(false);
 
   // 智能解析文件（JSON或JSONL）
   const parseFile = useCallback(async (file) => {
@@ -290,6 +294,91 @@ const useFileManager = () => {
     const isJSONL = file.name.endsWith('.jsonl') || (text.includes('\n{') && !text.trim().startsWith('['));
     return isJSONL ? parseJSONL(text) : JSON.parse(text);
   }, []);
+
+  const buildFileMetadata = useCallback(async (file) => {
+    try {
+      const data = extractChatData(await parseFile(file), file.name);
+      return {
+        format: data.format,
+        platform: data.platform || data.format,
+        messageCount: data.chat_history?.length || 0,
+        conversationCount: data.format === 'claude_full_export' ?
+          (data.views?.conversationList?.length || 0) : 1,
+        title: data.meta_info?.title || file.name,
+        model: data.meta_info?.model || '',
+        created_at: data.meta_info?.created_at,
+        updated_at: data.meta_info?.updated_at
+      };
+    } catch (err) {
+      console.warn(`提取元数据失败 ${file.name}:`, err);
+      return {
+        format: 'unknown',
+        messageCount: 0,
+        title: file.name
+      };
+    }
+  }, [parseFile]);
+
+  // 启动时恢复缓存文件（解决刷新后文件丢失）
+  useEffect(() => {
+    let cancelled = false;
+
+    const hydratePersistedFiles = async () => {
+      try {
+        const restoredFiles = await PersistentFileStore.loadAll();
+        if (cancelled || restoredFiles.length === 0) return;
+
+        const restoredMetadata = {};
+        for (const file of restoredFiles) {
+          restoredMetadata[file.name] = await buildFileMetadata(file);
+        }
+
+        if (cancelled) return;
+
+        setFiles(restoredFiles);
+        setFileMetadata(restoredMetadata);
+        setCurrentFileIndex(0);
+        setError(null);
+        console.log(`[Lyra] 已恢复 ${restoredFiles.length} 个缓存文件`);
+      } catch (err) {
+        console.warn('[Lyra] 恢复缓存文件失败:', err);
+      } finally {
+        if (!cancelled) {
+          hasHydratedPersistedFilesRef.current = true;
+          setIsHydratingPersistedFiles(false);
+        }
+      }
+    };
+
+    hydratePersistedFiles();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [buildFileMetadata]);
+
+  // 文件变更时写入缓存
+  useEffect(() => {
+    if (!hasHydratedPersistedFilesRef.current) return;
+
+    let cancelled = false;
+
+    const persistFiles = async () => {
+      try {
+        await PersistentFileStore.replaceAll(files);
+      } catch (err) {
+        if (!cancelled) {
+          console.warn('[Lyra] 持久化文件失败:', err);
+        }
+      }
+    };
+
+    persistFiles();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [files]);
 
   // 处理当前文件
   const processCurrentFile = useCallback(async () => {
@@ -361,31 +450,69 @@ const useFileManager = () => {
       setShowTypeConflictModal(true);
       return;
     }
-    // 提取元数据
     const newMeta = {};
     for (const file of newFiles) {
-      try {
-        const data = extractChatData(await parseFile(file), file.name);
-        newMeta[file.name] = {
-          format: data.format,
-          platform: data.platform || data.format,
-          messageCount: data.chat_history?.length || 0,
-          conversationCount: data.format === 'claude_full_export' ?
-            (data.views?.conversationList?.length || 0) : 1,
-          title: data.meta_info?.title || file.name,
-          model: data.meta_info?.model || '',
-          created_at: data.meta_info?.created_at,
-          updated_at: data.meta_info?.updated_at
-        };
-      } catch (err) {
-        console.warn(`提取元数据失败 ${file.name}:`, err);
-        newMeta[file.name] = { format: 'unknown', messageCount: 0, title: file.name };
-      }
+      newMeta[file.name] = await buildFileMetadata(file);
     }
     setFileMetadata(prev => ({ ...prev, ...newMeta }));
     setFiles(prev => [...prev, ...newFiles]);
     setError(null);
-  }, [files, checkCompatibility, parseFile]);
+  }, [files, checkCompatibility, buildFileMetadata]);
+
+  const upsertFile = useCallback(async (file, options = {}) => {
+    if (!file || typeof file.name !== 'string') {
+      setError('无效文件');
+      return false;
+    }
+
+    const upsertKey = typeof options.upsertKey === 'string' ? options.upsertKey.trim() : '';
+    if (upsertKey) {
+      file._lyraUpsertKey = upsertKey;
+    }
+    if (options.syncedAt) {
+      file._lyraSyncedAt = options.syncedAt;
+    }
+
+    const metadata = await buildFileMetadata(file);
+
+    const findIndexByKey = (list) => {
+      return list.findIndex(existingFile => {
+        const existingKey = existingFile._lyraUpsertKey || '';
+        if (upsertKey && existingKey && existingKey === upsertKey) return true;
+        if (upsertKey && !existingKey && existingFile.name === file.name) return true;
+        if (!upsertKey && existingFile.name === file.name) return true;
+        return false;
+      });
+    };
+
+    const previousIndex = findIndexByKey(files);
+    const previousName = previousIndex >= 0 ? files[previousIndex].name : null;
+
+    setFiles(prev => {
+      const idx = findIndexByKey(prev);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = file;
+        return next;
+      }
+      return [...prev, file];
+    });
+
+    setFileMetadata(prev => {
+      const next = { ...prev };
+      if (previousName && previousName !== file.name) {
+        delete next[previousName];
+      }
+      next[file.name] = metadata;
+      return next;
+    });
+
+    if (files.length === 0) {
+      setCurrentFileIndex(0);
+    }
+    setError(null);
+    return true;
+  }, [files, buildFileMetadata]);
 
   // 按对话分组（基于 integrity, main_chat, 或 chat_id_hash）
   const groupByConversation = useCallback((filesData) => {
@@ -656,13 +783,14 @@ const useFileManager = () => {
 
   const actions = useMemo(() => ({
     loadFiles,
+    upsertFile,
     loadMergedJSONLFiles,
     removeFile,
     switchFile,
     reorderFiles,
     confirmReplaceFiles,
     cancelReplaceFiles
-  }), [loadFiles, loadMergedJSONLFiles, removeFile, switchFile, reorderFiles, confirmReplaceFiles, cancelReplaceFiles]);
+  }), [loadFiles, upsertFile, loadMergedJSONLFiles, removeFile, switchFile, reorderFiles, confirmReplaceFiles, cancelReplaceFiles]);
 
   return {
     files,
@@ -670,6 +798,7 @@ const useFileManager = () => {
     currentFileIndex,
     processedData,
     isLoading,
+    isHydratingPersistedFiles,
     error,
     showTypeConflictModal,
     pendingFiles,
@@ -691,6 +820,7 @@ function App() {
     currentFile,
     currentFileIndex,
     processedData,
+    isHydratingPersistedFiles,
     showTypeConflictModal,
     pendingFiles,
     fileMetadata,
@@ -748,7 +878,8 @@ function App() {
       includeArtifacts: savedExportConfig.includeArtifacts !== undefined ? savedExportConfig.includeArtifacts : true,
       includeTools: savedExportConfig.includeTools || false,
       includeCitations: savedExportConfig.includeCitations || false,
-      includeAttachments: savedExportConfig.includeAttachments !== undefined ? savedExportConfig.includeAttachments : true
+      includeAttachments: savedExportConfig.includeAttachments !== undefined ? savedExportConfig.includeAttachments : true,
+      includeImageFiles: savedExportConfig.includeImageFiles !== undefined ? savedExportConfig.includeImageFiles : false
     };
   });
 
@@ -1529,10 +1660,16 @@ function App() {
       />
 
       {files.length === 0 ? (
-        <WelcomePage
-          handleLoadClick={() => fileInputRef.current?.click()}
-          handleFolderClick={() => folderInputRef.current?.click()}
-        />
+        isHydratingPersistedFiles ? (
+          <div style={{ padding: '48px 16px', textAlign: 'center' }}>
+            Restoring saved conversations...
+          </div>
+        ) : (
+          <WelcomePage
+            handleLoadClick={() => fileInputRef.current?.click()}
+            handleFolderClick={() => folderInputRef.current?.click()}
+          />
+        )
       ) : (
         <>
           {/* 顶部导航栏 */}

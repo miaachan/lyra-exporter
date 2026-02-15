@@ -170,6 +170,28 @@ const ExportPanel = ({
             </label>
           </div>
 
+          {exportOptions.exportFormat === 'markdown' && (
+            <div className="option-group">
+              <h3>{t('app.export.markdown.title')}</h3>
+              <label className="radio-option">
+                <input
+                  type="checkbox"
+                  checked={!!exportOptions.includeImageFiles}
+                  onChange={(e) => setExportOptions({
+                    ...exportOptions,
+                    includeImageFiles: e.target.checked
+                  })}
+                />
+                <div className="option-label">
+                  <span>{t('app.export.markdown.includeImageFiles')}</span>
+                  <span className="option-description">
+                    {t('app.export.markdown.includeImageFilesDesc')}
+                  </span>
+                </div>
+              </label>
+            </div>
+          )}
+
           {/* PDF 页面格式选择 - 仅在选中 PDF 时显示 */}
           {exportOptions.exportFormat === 'pdf' && (
             <div className="option-group">

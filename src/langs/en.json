@@ -168,6 +168,11 @@
         "pdf": "PDF Document",
         "pdfDesc": "Export as searchable plain text PDF (images not supported)"
       },
+      "markdown": {
+        "title": "Markdown Options",
+        "includeImageFiles": "Include Embedded Images (ZIP)",
+        "includeImageFilesDesc": "Bundle markdown and embedded images into a zip file using local image references"
+      },
       "scope": {
         "title": "Export Scope",
         "current": "Current Timeline File",

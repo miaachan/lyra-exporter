@@ -246,8 +246,8 @@ git clone https://github.com/Yalums/lyra-exporter.git
 cd lyra-exporter
 
 # 安装依赖
-npm install
+pnpm install
 
 # 启动开发服务器
-npm start
+pnpm start
 ```

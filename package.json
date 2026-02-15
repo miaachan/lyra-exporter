@@ -2,6 +2,7 @@
   "name": "lyra-exporter",
   "version": "1.7.3",
   "private": true,
+  "packageManager": "pnpm@10.17.1",
   "homepage": ".",
   "description": "A handy tool for exporting chat conversations.",
   "author": {
@@ -31,7 +32,7 @@
     "start:network": "cross-env HOST=0.0.0.0 PORT=3789 react-scripts start",
     "build": "react-scripts build",
     "build:extension": "react-scripts build",
-    "predeploy": "npm run build",
+    "predeploy": "pnpm run build",
     "deploy": "gh-pages -d build",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",

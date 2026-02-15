@@ -23,7 +23,7 @@ export class PostMessageHandler {
       return;
     }
 
-    const { type, source, data } = event.data || {};
+    const { type, source } = event.data || {};
 
     // 处理握手
     if (type === 'LYRA_HANDSHAKE' && source === 'lyra-fetch-script') {
@@ -62,18 +62,32 @@ export class PostMessageHandler {
     }
   }
 
-  handleDataLoad(data) {
+  async handleDataLoad(data) {
     console.log('[Lyra Exporter] 处理数据加载');
 
     try {
-      const { content, filename } = data;
+      const {
+        content,
+        filename,
+        replaceExisting = false,
+        upsertKey = '',
+        syncedAt = null
+      } = data || {};
 
       if (!content) {
         throw new Error('没有收到内容数据');
       }
 
       const file = this.createFileFromContent(content, filename);
-      this.fileActions.loadFiles([file]);
+
+      if (replaceExisting && typeof this.fileActions.upsertFile === 'function') {
+        await this.fileActions.upsertFile(file, {
+          upsertKey,
+          syncedAt
+        });
+      } else {
+        await this.fileActions.loadFiles([file]);
+      }
 
       console.log('[Lyra Exporter] 成功加载数据:', filename);
       this.setError(null);

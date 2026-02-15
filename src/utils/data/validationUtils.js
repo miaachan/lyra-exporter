@@ -11,6 +11,7 @@ export const ValidationUtils = {
       'https://claude.easychat.top',
       'https://pro.easychat.top',
       'https://chatgpt.com',
+      'https://chat.openai.com',
       'https://grok.com',
       'https://x.com',
       'https://gemini.google.com',
