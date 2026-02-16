@@ -95,8 +95,8 @@
             MANUAL_ID_BTN: 'lyra-manual-id-btn',
             AUTO_SYNC_ID: 'lyra-auto-sync-switch',
             WORKSPACE_SWITCH_BTN_ID: 'lyra-workspace-switch-btn',
-            EXPORTER_URL: 'http://localhost:3789/',
-            EXPORTER_ORIGIN: 'http://localhost:3789',
+            EXPORTER_URL: 'https://miaachan.github.io/lyra-exporter/',
+            EXPORTER_ORIGIN: 'https://miaachan.github.io',
             TIMING: {
                 SCROLL_DELAY: 250,
                 SCROLL_TOP_WAIT: 1000,
